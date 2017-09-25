@@ -14,6 +14,10 @@
   [conn name]
   (-> conn (.db name) .drop))
 
+(defn get-databases
+  "returns a vector of database names"
+  [conn] (into [] (.getDatabases conn)))
+
 (defn get-database
   "returns a new `ArrangoDatabase` even if `name` does not exist."
   [conn name]

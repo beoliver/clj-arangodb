@@ -5,6 +5,10 @@
 (defn rand-uppercase-str [len]
   (apply str (take len (repeatedly #(char (+ (rand 26) 65))))))
 
+(deftest get-databases-test
+  (testing "can get databases")
+  (is (vector? (get-databases (new-arrangodb {})))))
+
 (deftest create-get-and-drop-database-test
   (testing "can create and drop a database"
     (let [conn (new-arrangodb {})
