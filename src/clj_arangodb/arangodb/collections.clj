@@ -17,9 +17,10 @@
   (.getId coll))
 
 (defn insert-document
-  "works with POJOs (e.g. MyObject), VelocyPack (VPackSlice) and Json (String)."
+  "works with POJOs (e.g. MyObject), VelocyPack (VPackSlice) and Json (String).
+  returns a map with the `:id` `:key` `:new` and `:rev`"
   [coll doc]
-  (.insertDocument coll doc))
+  (-> (.insertDocument coll doc) bean (dissoc :class)))
 
 (defn insert-documents
   [coll docs]

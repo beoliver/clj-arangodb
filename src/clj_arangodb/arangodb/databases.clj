@@ -16,7 +16,7 @@
        (.getCollections db)))
 
 (defn create-collection
-  "returns a new `CollectionEntity`"
+  "returns a new `CollectionEntity` - NOT an `ArangoCollection`"
   ([db coll-name]
    (-> db (.createCollection coll-name nil))))
 
