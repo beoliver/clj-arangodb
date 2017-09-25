@@ -16,3 +16,14 @@
       (is (= true (create-database conn db-name)))
       (is (get-database conn db-name))
       (is (= true (drop-database conn db-name))))))
+
+(deftest multiple-threads-can-create-databases
+  (testing "multiple threads can create databases")
+  (let [conn (new-arrangodb {})
+        db-count (count (get-databases conn))
+        names (repeatedly 10 (fn [] (rand-uppercase-str 10)))]
+    (is (= 10 (count names)))
+    (doall (pmap (fn [name] (create-database conn name)) names))
+    (is (= 10 (- (count (get-databases conn)) db-count)))
+    (doall (pmap (fn [name] (drop-database conn name)) names))
+    (is (= db-count (count (get-databases conn))))))
