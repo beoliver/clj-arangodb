@@ -24,14 +24,17 @@ Early statges an will definitely change
     (databases/create-collection my-database "myCollection")
     (databases/get-collection my-database "myCollection")))
     
-(for [simpson (map v/pack [{:name "Homer" :age 38}
-                           {:name "Marge" :age 36}
-                           {:name "Bart" :age 10}
-                           {:name "Lisa" :age 8}
-                           {:name "Maggie" :age 2}])]
-  (collections/insert-document my-collection simpson))
+(collections/insert-documents my-collection 
+                              (map v/pack [{:name "Homer" :age 38}
+                                           {:name "Marge" :age 36}
+                                           {:name "Bart" :age 10}
+                                           {:name "Lisa" :age 8}
+                                           {:name "Maggie" :age 2}]))
   
-(let [query-fn (aql/stmt {"min" 9 "max" 37 "@coll" "myCollection"}
-                         "FOR u IN @@coll FILTER (u.age > @min) AND (u.age < @max) RETURN u.name")]
-  (cursor/as-list (query-fn db VPackSlice)))
+(let [query-fn (aql/stmt {"one" 1 "two" 2 "@coll" coll-name}
+                         "FOR i IN @@coll RETURN (i.age + @one) * @two")
+      xs (.asListRemaining (query-fn db VPackSlice))]
+  (map #(.getAsInt %) xs))
+  
+> (78 74 22 18 6)
 ```
