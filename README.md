@@ -6,12 +6,8 @@ Early statges an will definitely change
 ```clojure
 (ns my.project.core
   (:require [clj-arangodb.arangodb.core :as arango]
-            [clj-arangodb.arangodb.databases :as databases]
-            [clj-arangodb.arangodb.collections :as collections]
             [clj-arangodb.velocypack.core :as v]
-            [clj-arangodb.arangodb.aql :as aql]
-            [clj-arangodb.arangodb.cursor :as cursor]))
-
+            [clj-arangodb.arangodb.aql :as aql]))
 
 (def conn (conn/new-arrangodb {}))
 (arango/create-database conn "myDatabase")
