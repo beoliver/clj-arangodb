@@ -3,7 +3,7 @@ Clojure wrappers for the arangodb java client and velocypack libs
 
 Early statges an will definitely change
 
-```
+```clojure
 (ns my.project.core
   (:require [clj-arangodb.arangodb.core :as arango]
             [clj-arangodb.arangodb.databases :as databases]
