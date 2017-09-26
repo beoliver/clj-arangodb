@@ -33,7 +33,7 @@ Early statges an will definitely change
 
 (def my-database (arango/get-database conn "myDatabase"))
 
-(map #(v/read-as % :int) (.asListRemaining (query-fn db VPackSlice)))
+(map #(v/read-as % :int) (.asListRemaining (query-fn my-database VPackSlice)))
 
 > (78 74 22 18 6)
 
