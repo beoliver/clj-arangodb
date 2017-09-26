@@ -15,7 +15,7 @@ Early statges an will definitely change
 
 (def conn (conn/new-arrangodb {}))
 (arango/create-database conn "myDatabase")
-(arango/create-collection "myDatabase" "myCollection")
+(arango/create-collection conn "myDatabase" "myCollection")
 
 (arango/insert-documents conn
                          "myDatabase"
