@@ -26,6 +26,32 @@
                                (.get slice (utils/normalize k))) slice ks)]
      (if (.isNone inner-slice) not-found inner-slice))))
 
+(defn read-as [x keyword]
+  (when-not (or (.isNull x) (.isNone x))
+    (try
+      (case keyword
+        :string (.getAsString x)
+        :bool (.getAsBoolean x)
+        :number (.getAsNumber x)
+        :date (.getAsDate x)
+        :int (.getAsInt x)
+        :float (.getAsFloat x)
+        :long (.getAsLong x)
+        :char (.getAsChar x)
+        :double (.getAsDouble x)
+        :byte (.getAsByte x)
+        (.getAsString x))
+      (catch Exception _ (.toString x)))))
+
+;; (def schema-1 {:a :number
+;;                :b {:c :bool :d :string}})
+
+;; (defn unpack [schema slice])
+
+
+;; (-> (pack {:a 209.34 :b {:c true :d "ok"}})
+;;     (get-in [:b :c])
+;;     (read-as :bool))
 
 (defn new-vpack-builder []
   (new VPackBuilder))
@@ -33,14 +59,21 @@
 (declare build-map)
 (declare build-array)
 
+(defn pack-one [x]
+  (-> (new VPackBuilder)
+      (.add ValueType/ARRAY)
+      (.add x)
+      .close
+      .slice
+      (.get 0)))
+
 (defn pack [xs]
-  (.slice (cond (map? xs)
-                (build-map (-> (new VPackBuilder) (.add ValueType/OBJECT)) xs)
-                (string? xs) nil
-                (nil? xs) nil
-                (utils/seqable? xs)
-                (build-array (-> (new VPackBuilder) (.add ValueType/ARRAY)) xs)
-                :else nil)))
+  (cond (map? xs)
+        (.slice (build-map (-> (new VPackBuilder) (.add ValueType/OBJECT)) xs))
+        ((some-fn string? number? nil?) xs) (pack-one xs)
+        (utils/seqable? xs)
+        (.slice (build-array (-> (new VPackBuilder) (.add ValueType/ARRAY)) xs))
+        :else (pack-one xs)))
 
 (defn build-array [builder seq]
   (-> (reduce (fn [builder elem]
