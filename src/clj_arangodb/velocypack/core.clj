@@ -47,8 +47,11 @@
                 (cond (map? elem) (-> builder
                                       (.add ValueType/OBJECT)
                                       (build-map elem))
+                      ;; as a string is seqable we test for it early on.
+                      ;; otherwise we store a list of characters!
                       (string? elem) (.add builder elem)
                       (nil? elem) (.add builder elem)
+                      ;; (number? elem) (.add builder elem)
                       (utils/seqable? elem) (-> builder
                                                 (.add ValueType/ARRAY)
                                                 (build-array elem))
@@ -64,9 +67,10 @@
                                  (build-map v))
                     (string? v) (.add builder (utils/normalize k) v)
                     (nil? v) (.add builder (utils/normalize k) nil)
+                    (number? v) (.add builder (utils/normalize k) v)
                     (utils/seqable? v) (-> builder
                                            (.add (utils/normalize k) ValueType/ARRAY)
                                            (build-array (seq v)))
-                    :else (.add builder (utils/normalize k) (utils/normalize v))))
+                    :else (.add builder (utils/normalize k) v)))
             $ m)
     (.close $)))
