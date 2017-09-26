@@ -33,7 +33,7 @@
 (declare build-map)
 (declare build-array)
 
-(defn vpack [xs]
+(defn pack [xs]
   (.slice (cond (map? xs)
                 (build-map (-> (new VPackBuilder) (.add ValueType/OBJECT)) xs)
                 (string? xs) nil
