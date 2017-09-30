@@ -62,6 +62,13 @@
   ([conn db-name graph-name edge-coll data]
    (add-edge (.db conn db-name) graph-name edge-coll data)))
 
+(defn get-edge-coll [graph coll-name]
+  (.edgeCollection graph coll-name))
+
+(defn add-edges
+  [edge-collection edges]
+  (.insertEdges edge-collection edges))
+
 (defn add-edge*
   [{:keys [conn db coll]} data]
   (-> conn (.db db) (.collection coll) (.insertDocument data nil)

@@ -59,9 +59,7 @@
         (-> (d/get-coll db "Parent")
             (c/insert-docs (flatten (for [parent [homer marge]]
                                       (for [child [bart lisa maggie]]
-                                        (v/pack {:_from parent :_to child}))))))
-
-        ))))
+                                        (v/pack {:_from parent :_to child}))))))))))
 
 
 ;; (def conn (arango/connect {:user "dev" :password "123"}))
