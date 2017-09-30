@@ -1,18 +1,10 @@
 (ns clj-arangodb.arangodb.core
-  (:require [clojure.set :as set]
-            [pjson.core :as json]
-            [clojure.walk :as walk]
-            [clj-arangodb.arangodb.utils :as utils]
-            [clj-arangodb.arangodb.graph :as g]
-            [clojure.reflect :as r])
+  (:require [clj-arangodb.arangodb.utils :as utils])
   (:import
    com.arangodb.ArangoDB$Builder
    com.arangodb.ArangoDB
    com.arangodb.ArangoDatabase
-   com.arangodb.ArangoCollection
-   com.arangodb.entity.CollectionEntity
-   com.arangodb.ArangoDBException
-   com.arangodb.velocypack.VPackSlice))
+   com.arangodb.ArangoDBException))
 
 ;;; This namespace includes all functions that take an ArangoDB object as the
 ;;; first parameter.
@@ -21,7 +13,8 @@
 
 ;;; builders that are threaded on a call to `connect`.
 ;;; the options map is checked for relevant keywords
-;;; if none are found then each function is ignored (falling back to the default values)
+;;; if none are found then each function is ignored
+;;; (falling back to the default values)
 
 (defn- ^ArangoDB$Builder add-host-port
   [^ArangoDB$Builder builder {:keys [^String host ^Integer port] :as options}]
@@ -48,7 +41,7 @@
     builder))
 
 (defn- ^ArangoDB$Builder add-ssl-context
-  [^ArangoDB$Builder builder {:keys [ssl] :as options}]
+  [^ArangoDB$Builder builder {:keys [^SSLContext ssl] :as options}]
   (if ssl
     (-> builder (.sslContext ssl) (.useSsl true) )
     builder))
@@ -72,15 +65,19 @@
     builder))
 
 (defn ^ArangoDB connect
-  "Takes an options `map`. the full list of keywords are:
-  `:host` `String`
-  `:port` `Integer | Long`
-  `:user` `String`
-  `:password` `String`
-  `:ssl` `SSlContext`
-  `:timeout` `Integer | Long`
-  `:chunksize` `Integer | Long`
-  `:max-connections` `Integer | Long`"
+  "Takes an optional map that may contain the following:
+  :host String
+  :port Integer | Long
+  :user String
+  :password String
+  :protocol :vst | :http-json | :http-vpack (:vst by default)
+  :ssl SSlContext
+  :timeout Integer | Long
+  :chunksize Integer | Long
+  :max-connections Integer | Long
+  If no options are passed - the defaults of the java-driver are used:
+  https://github.com/arangodb/arangodb-java-driver
+  "
   ([]
    (connect {}))
   ([{:keys [host port user password] :as options}]
@@ -99,17 +96,24 @@
   [^ArangoDB conn ^String db-name]
   (.createDatabase conn db-name))
 
-(defn get-dbs
-  "returns a `seq` of strings"
-  [^ArangoDB conn] (seq (.getDatabases conn)))
-
 (defn ^ArangoDatabase get-db
   "Always returns a new `ArrangoDatabase` even if no such database exists
   the returned object can be used if a databse is created at a later time"
   [^ArangoDB conn ^String db-name]
   (-> conn (.db db-name)))
 
+(defn get-dbs
+  "returns a `seq` of strings corresponding to the names of databases"
+  [^ArangoDB conn] (seq (.getDatabases conn)))
+
 (defn drop-db
   "returns `true` if database with `db-name` was dropped else `ArangoDBException`"
   [^ArangoDB conn ^String db-name]
   (-> conn (.db db-name) .drop))
+
+(defn drop-db-if-exists
+  "returns `true` if database with `db-name` was dropped else `nil`.
+  Usefull for testing when you dont want to worry about try catch."
+  [^ArangoDB conn ^String db-name]
+  (try (drop-db conn db-name)
+       (catch ArangoDBException e nil)))
