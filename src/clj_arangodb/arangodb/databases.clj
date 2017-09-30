@@ -1,48 +1,107 @@
 (ns clj-arangodb.arangodb.databases
-  (:import com.arangodb.velocypack.VPackSlice))
+  (:require [clojure.set :as set]
+            [clj-arangodb.arangodb.graph :as graph]
+            [pjson.core :as json]
+            [clojure.walk :as walk]
+            [clj-arangodb.arangodb.utils :as utils]
+            [clj-arangodb.arangodb.graph :as g]
+            [clojure.reflect :as r])
+  (:import
+   com.arangodb.ArangoDB$Builder
+   com.arangodb.ArangoDB
+   com.arangodb.ArangoDatabase
+   com.arangodb.ArangoGraph
+   com.arangodb.ArangoCollection
+   com.arangodb.entity.CollectionEntity
+   com.arangodb.entity.GraphEntity
+   com.arangodb.ArangoDBException
+   com.arangodb.velocypack.VPackSlice))
 
-;; (map :name (:members (r/reflect db)))
+(defn ^CollectionEntity create-coll
+  ([^ArangoDatabase db ^String coll-name]
+   (-> db (.createCollection coll-name nil))))
 
-;; (com.arangodb.ArangoDatabase deleteAqlFunction getCurrentlyRunningQueries killQuery collection getVersion getQueryTrackingProperties setQueryCacheProperties explainQuery getSlowQueries grantAccess clearSlowQueries getCollections setCursorInitializer grantAccess revokeAccess cursorInitializer getCollections createCollection resetAccess executeTraversal createCollection setQueryTrackingProperties createGraph com.arangodb.ArangoDatabase graph createAqlFunction getQueryCacheProperties getAqlFunctions access$000 cursor query getInfo getGraphs access$100 transaction getDocument deleteIndex clearQueryCache getDocument createCursor drop getIndex parseQuery reloadRouting createGraph getAccessibleDatabases access$300 updateUserDefaultCollectionAccess access$200)
+(defn ^GraphEntity create-graph
+  "Create a new graph `graph-name`. edge-definitions must be a not empty
+  sequence of maps `{:name 'relationName' :sources ['collA'...] :targets [collB...]}`
+  if the names in sources and targets do not exist on the database, then new collections
+  will be created."
+  [^ArangoDatabase db graph-name edge-definitions]
+  (.createGraph db graph-name
+                (map #(if (map? %) (graph/define-edge %) %)
+                     edge-definitions)))
 
-(defn get-collections
+
+(defn ^ArangoCollection get-coll
+  "Always returns a new `ArrangoCollection` even if no such collection exists.
+  The returned object can be used if a collection is created at a later time"
+  ([^ArangoDatabase db ^String coll-name]
+   (.collection db coll-name)))
+
+(defn ^ArangoGraph get-graph
+  "Always returns a new `ArrangoGraph` even if no such collection exists.
+  The returned object can be used if a collection is created at a later time"
+  ([^ArangoDatabase db ^String graph-name]
+   (.graph db graph-name)))
+
+
+(defn truncate-coll
+  ""
+  [db coll-name]
+  (-> db (.collection coll-name) .truncate))
+
+(defn drop-coll
+  ""
+  [db coll-name]
+  (-> db (.collection coll-name) .drop))
+
+(defn drop-graph [db graph-name]
+  (-> (.graph db graph-name) .drop))
+
+(defn ^ArangoCollection get-coll
+  "returns a new `ArangoCollection`."
+  ([^ArangoDatabase db ^String coll-name]
+   (-> db (.collection coll-name)))
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (-> conn (.db db-name) (.collection coll-name))))
+
+(defn get-colls
   "returns a `lazySeq` of maps with keys
   `:id`, `:isSystem`, `:isVolatile`, `:name`, `:status`, `:type`, `:waitForSync`"
-  [db]
+  [conn db-name]
   (map #(-> % bean
             (dissoc :class)
             (update :status str)
             (update :type str))
-       (.getCollections db)))
+       (-> conn (.db db-name) .getCollections)))
 
-(defn create-collection
-  "returns a new `CollectionEntity` - NOT an `ArangoCollection`"
-  ([db coll-name]
-   (-> db (.createCollection coll-name nil))))
+(defn get-vpack-doc-by-id
+  ([db id] (.getDocument db id VPackSlice))
+  ([conn db-name id] (-> conn (.db db-name) (.getDocument id VPackSlice))))
 
-(defn truncate-collection
-  ""
-  ([db coll-name]
-   (-> db (.collection coll-name) .truncate)))
+(defn get-json-doc-by-id*
+  [{:keys [conn db]} id]
+  (-> conn (.db db) (.getDocument id String)))
 
-(defn drop-collection
-  ""
-  ([db coll-name]
-   (-> db (.collection coll-name) .drop)))
+(defn get-json-doc-by-id
+  ([db id] (.getDocument db id String))
+  ([conn db-name id]
+   (-> conn (.db db-name) (.getDocument id String))))
 
-(defn get-collection
-  "returns a new `ArrangoCollection`."
-  ([db coll-name]
-   (-> db (.collection coll-name))))
 
-(defn get-document-as-vpack
-  [db id]
-  (.getDocument db id VPackSlice))
 
-(defn get-document-as-json
-  [db id]
-  (.getDocument db id String))
+(defn get-doc-by-id
+  ([db id] (-> (get-json-doc-by-id db id)
+               json/read-str
+               walk/keywordize-keys))
+  ([conn db-name id] (-> (get-json-doc-by-id conn db-name id)
+                         json/read-str
+                         walk/keywordize-keys)))
 
-(defn get-document-as-java-bean
-  [db id class]
-  (.getDocument db id class))
+(def get-edge-by-id get-doc-by-id)
+
+
+
+(defn get-bean-doc-by-id
+  ([db id class] (.getDocument db id class))
+  ([conn db-name id class] (-> conn (.db db-name) (.getDocument id class))))

@@ -6,15 +6,67 @@
            com.arangodb.velocypack.VPack
            com.arangodb.velocypack.VPackBuilder))
 
-(defn get-type [slice]
+;;; NOTE - keys are always converted to Strings. this means that the
+;;; type information is lost. Keywords `:a` `:b` etc are converted to
+;;; strings by the `pack` function.
+;;; (def d (new java.util.Date))
+;;; (v/unpack (v/pack {:a d d true}))
+;;; {"Sat Sep 30 17:12:18 CEST 2017" true, "a" #inst "2017-09-30T15:12:18.368-00:00"}
+
+;;; keywords and strings - using :a and "a" in the same map -- not a good idea.
+;;; user> (v/pack {:a "hello" "a" "world"})
+;;; #object[com.arangodb.velocypack.VPackSlice 0x743c4699 "{\"a\":\"hello\",\"a\":\"world\"}"]
+;;; user> (v/unpack (v/pack {:a "hello" "a" "world"}))
+;;; {"a" "world"}
+
+;;; use `unpack*` to convert all keys to keywords (included in maps inside arrays)
+;;; will convert "1" to `:1`
+
+(defn ^Boolean vpack-slice? [x]
+  (= (type x) VPackSlice))
+
+(defn ^ValueType get-type [^VPackSlice slice]
   (.getType slice))
 
 (defn get
-  "Returns the `VPackSlice` mapped to key, not-found or nil if key not present."
+  "Returns the `VPackSlice` mapped to key, not-found or nil if key not present.
+  keys are strings. if a keyword is (name key) will be called"
   ([slice k] (get slice k nil))
   ([slice k not-found]
    (let [val (.get slice (utils/normalize k))]
      (if (.isNone val) not-found val))))
+
+(defn get*
+  "Returns the value at key cast to its inferred type,
+  not-found or nil if key not present. If the type is not one of
+  None ILLEGAL NULL STRING INT BOOL DOUBLE UINT SMALLINT BINARY UTC_DATE
+  then a slice will be returned. As such is is NOT consistent.
+  keys are strings. if a keyword is (name key) will be called"
+  ([slice k] (get* slice k nil))
+  ([slice k not-found]
+   (let [slice (.get slice (utils/normalize k))]
+     (if (.isNone slice)
+       not-found
+       (case (-> slice .getType .toString)
+         "None" nil
+         "ILLEGAL" nil
+         "NULL" nil
+         "STRING" (.getAsString slice)
+         "INT" (.getAsInt slice)
+         "BOOL" (.getAsBoolean slice)
+         "DOUBLE" (.getAsDouble slice)
+         "UINT" (.getAsInt slice)
+         "SMALLINT" (.getAsInt slice)
+         "BINARY" (.getAsBinary slice)
+         "UTC_DATE" (.getAsDate slice)
+         "VPACK" slice
+         "ARRAY" slice
+         "OBJECT" slice
+         "EXTERNAL" slice
+         "MIN_KEY" slice
+         "MAX_KEY" slice
+         "BCD" slice
+         "CUSTOM" slice)))))
 
 (defn get-in
   "Returns the `VPackSlice` in a nested `VPackSlice` structure,
@@ -42,12 +94,6 @@
         :byte (.getAsByte x)
         (.getAsString x))
       (catch Exception _ (.toString x)))))
-
-;; (def schema-1 {:a :number
-;;                :b {:c :bool :d :string}})
-
-;; (defn unpack [schema slice])
-
 
 ;; (-> (pack {:a 209.34 :b {:c true :d "ok"}})
 ;;     (get-in [:b :c])
@@ -107,3 +153,61 @@
                     :else (.add builder (utils/normalize k) v)))
             $ m)
     (.close $)))
+
+
+
+(defn unpack [^VPackSlice slice]
+  (case (-> slice .getType .toString)
+    "ARRAY" (let [length (.getLength slice)]
+              (for [i (range length)] (unpack (.get slice i))))
+    "OBJECT" (let [length (.getLength slice)]
+               (into {} (for [i (range length)]
+                          [(unpack (.keyAt slice i)) (unpack (.valueAt slice i))])))
+    "None" nil
+    "ILLEGAL" nil
+    "NULL" nil
+    "STRING" (.getAsString slice)
+    "INT" (.getAsInt slice)
+    "BOOL" (.getAsBoolean slice)
+    "DOUBLE" (.getAsDouble slice)
+    "UINT" (.getAsInt slice)
+    "SMALLINT" (.getAsInt slice)
+    "BINARY" (.getAsBinary slice)
+    "UTC_DATE" (.getAsDate slice)
+    "VPACK" slice
+    "EXTERNAL" slice
+    "MIN_KEY" slice
+    "MAX_KEY" slice
+    "BCD" slice
+    "CUSTOM" slice
+    ))
+
+
+(defn make-key [x]
+  (keyword x))
+
+(defn unpack* [^VPackSlice slice]
+  (case (-> slice .getType .toString)
+    "ARRAY" (let [length (.getLength slice)]
+              (for [i (range length)] (unpack (.get slice i))))
+    "OBJECT" (let [length (.getLength slice)]
+               (into {} (for [i (range length)]
+                          [(make-key (unpack (.keyAt slice i))) (unpack (.valueAt slice i))])))
+    "None" nil
+    "ILLEGAL" nil
+    "NULL" nil
+    "STRING" (.getAsString slice)
+    "INT" (.getAsInt slice)
+    "BOOL" (.getAsBoolean slice)
+    "DOUBLE" (.getAsDouble slice)
+    "UINT" (.getAsInt slice)
+    "SMALLINT" (.getAsInt slice)
+    "BINARY" (.getAsBinary slice)
+    "UTC_DATE" (.getAsDate slice)
+    "VPACK" slice
+    "EXTERNAL" slice
+    "MIN_KEY" slice
+    "MAX_KEY" slice
+    "BCD" slice
+    "CUSTOM" slice
+    ))

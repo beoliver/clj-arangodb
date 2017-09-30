@@ -4,6 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [pjson "0.4.0"]
                  [com.arangodb/arangodb-java-driver "4.2.2"]
-                 ;; SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-                 ])
+                 [org.slf4j/slf4j-simple "1.7.25"]])
