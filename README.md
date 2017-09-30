@@ -16,7 +16,7 @@ Early statges an will definitely change
     (arango/drop-db-if-exists conn "userDB")
     (let [db (arango/create-and-get-db conn "userDB")
           ;; we create a seq of maps with name and age keys
-          the-simpons (map (fn [x y] {:name x :age y})
+          the-simpsons (map (fn [x y] {:name x :age y})
                            ["Homer" "Marge" "Bart" "Lisa" "Maggie"] [38 36 10 8 2])
           ;; we need to create a collection to keep the characers.
           ;; the map passed is optional
@@ -26,9 +26,9 @@ Early statges an will definitely change
           ;; we will use the first names as keys into the map
           simpsons-map (into {} (map (fn [m] [(:name m) m])
                                      (map merge
-                                          the-simpons
+                                          the-simpsons
                                           (c/insert-docs coll
-                                                         (map v/pack the-simpons)))))
+                                                         (map v/pack the-simpsons)))))
           ;; lets get the ids for all the characters
           bart (get-in simpsons-map ["Bart" :_id])
           lisa (get-in simpsons-map ["Lisa" :_id])
