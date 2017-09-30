@@ -15,6 +15,10 @@
    com.arangodb.velocypack.VPackSlice))
 
 
+
+
+
+
 (defn insert-doc
   "works with POJOs (e.g. MyObject), VelocyPack (VPackSlice) and Json (String).
   returns a map with keys `:_id` `:_key` `:_new` and `:_rev`"

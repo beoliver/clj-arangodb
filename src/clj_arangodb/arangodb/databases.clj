@@ -1,6 +1,7 @@
 (ns clj-arangodb.arangodb.databases
   (:require [clojure.set :as set]
             [clj-arangodb.arangodb.graph :as graph]
+            [clj-arangodb.arangodb.collection-options :as collection-options]
             [pjson.core :as json]
             [clojure.walk :as walk]
             [clj-arangodb.arangodb.utils :as utils]
@@ -15,11 +16,24 @@
    com.arangodb.entity.CollectionEntity
    com.arangodb.entity.GraphEntity
    com.arangodb.ArangoDBException
-   com.arangodb.velocypack.VPackSlice))
+   com.arangodb.velocypack.VPackSlice
+   com.arangodb.model.CollectionCreateOptions))
 
-(defn ^CollectionEntity create-coll
+(defn ^CollectionEntity create-collection
+  "create a new collection entity."
   ([^ArangoDatabase db ^String coll-name]
-   (-> db (.createCollection coll-name nil))))
+   (-> db (.createCollection coll-name nil)))
+  ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
+   (if (map? options)
+     (let [options (collection-options/make-options options)]
+       (-> db (.createCollection coll-name options))))))
+
+(defn ^ArangoCollection get-collection
+  "Returns a handler of the collection by the given name
+  Always returns a new `ArrangoCollection` even if no such collection exists.
+  The returned object can be used if a collection is created at a later time"
+  ([^ArangoDatabase db ^String coll-name]
+   (.collection db coll-name)))
 
 (defn ^GraphEntity create-graph
   "Create a new graph `graph-name`. edge-definitions must be a not empty
@@ -31,12 +45,6 @@
                 (map #(if (map? %) (graph/define-edge %) %)
                      edge-definitions)))
 
-
-(defn ^ArangoCollection get-coll
-  "Always returns a new `ArrangoCollection` even if no such collection exists.
-  The returned object can be used if a collection is created at a later time"
-  ([^ArangoDatabase db ^String coll-name]
-   (.collection db coll-name)))
 
 (defn ^ArangoGraph get-graph
   "Always returns a new `ArrangoGraph` even if no such collection exists.
