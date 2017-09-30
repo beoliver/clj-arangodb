@@ -102,6 +102,12 @@
   [^ArangoDB conn ^String db-name]
   (-> conn (.db db-name)))
 
+(defn ^Boolean create-and-get-db
+  "returns an `ArrangoDatabase` handler"
+  [^ArangoDB conn ^String db-name]
+  (do (create-db conn db-name)
+      (get-db conn db-name)))
+
 (defn get-dbs
   "returns a `seq` of strings corresponding to the names of databases"
   [^ArangoDB conn] (seq (.getDatabases conn)))

@@ -6,20 +6,16 @@
             [clj-arangodb.velocypack.core :as v]))
 
 (defn example []
-  (let [conn (arango/connect {:user "dev" :password "123"})
-        db-name "userDB"]
-    (try (arango/drop-db conn db-name)
-         (catch Exception e nil))
-    (let [db (do (arango/create-db conn db-name)
-                 (arango/get-db conn db-name))
+  (let [conn (arango/connect {:user "dev" :password "123"})]
+    (arango/drop-db-if-exists conn "userDB")
+    (let [db (arango/create-and-get-db conn "userDB")
           ;; we create a seq of maps with name and age keys
           the-simpons (map (fn [x y] {:name x :age y})
                            ["Homer" "Marge" "Bart" "Lisa" "Maggie"] [38 36 10 8 2])
           ;; we need to create a collection to keep the characers.
           ;; the map passed is optional
           ;; (create-collection will make a document collection by default)
-          coll (do (d/create-collection db "Simpsons" {:type :document})
-                   (d/get-collection db "Simpsons"))
+          coll (d/create-and-get-collection db "Simpsons" {:type :document})
           ;; we insert the docs and merge the return keys - giving us ids
           ;; we will use the first names as keys into the map
           simpsons-map (into {} (map (fn [m] [(:name m) m])
@@ -36,14 +32,10 @@
           ;; next we want to think about the relations that we want to capture
           ;; create two edge relations, each r is a is a new or existing edge collection
           ;; as an exaple we will create an edge collection called "Sibling" now.
-          sibling-coll (do (d/create-collection db "Sibling" {:type :edge})
-                           (d/get-collection db "Sibling"))
-          r1 {:name "Sibling" :from ["Simpsons"] :to ["Simpsons"]}
-          r2 {:name "Parent" :from ["Simpsons"] :to ["Simpsons"]}
+          sibling-coll (d/create-and-get-collection db "Sibling" {:type :edge})]
 
-          simpson-graph (do
-                          (d/create-graph db "SimpsonGraph" [r1 r2])
-                          (d/get-graph db "SimpsonGraph"))]
+      (d/create-graph db "SimpsonGraph" [{:name "Sibling" :from ["Simpsons"] :to ["Simpsons"]}
+                                         {:name "Parent" :from ["Simpsons"] :to ["Simpsons"]}])
 
       (c/insert-docs sibling-coll (map v/pack [{:_from bart :_to lisa}
                                                {:_from lisa :_to bart}

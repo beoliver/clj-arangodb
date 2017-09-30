@@ -35,6 +35,15 @@
   ([^ArangoDatabase db ^String coll-name]
    (.collection db coll-name)))
 
+(defn ^ArangoCollection create-and-get-collection
+  "Returns a handler of the collection by the given name
+  Always returns a new `ArrangoCollection` even if no such collection exists.
+  The returned object can be used if a collection is created at a later time"
+  ([^ArangoDatabase db ^String coll-name]
+   (do (create-collection db coll-name) (get-collection db coll-name)))
+  ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
+   (do (create-collection db coll-name options) (get-collection db coll-name))))
+
 (defn ^GraphEntity create-graph
   "Create a new graph `graph-name`. edge-definitions must be a not empty
   sequence of maps `{:name 'relationName' :sources ['collA'...] :targets [collB...]}`
