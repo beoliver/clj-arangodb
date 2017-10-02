@@ -16,11 +16,19 @@ Where possible the keys to maps are identical to the methods in the java-driver.
 
 So lets begin with a simple example.
 ```clojure
-(require '[clj-arangodb.arangodb.core :as arangodb])
+(require '[clj-arangodb.arangodb.core :as arango])
 ;; the .core ns provides functions for creating connections and working with databases
 (def conn (arango/connect {:user "dev" :password "123"}))
 ;; we create a connection - this is for my local instace. If no credentials are used then
 ;; it falls back to the defaults for the java-driver ("root")
+;; so I guess the first thing that we want to do is create a database.
+(arango/create-db conn "userDB")
+(def db (arango/get-db conn "userDB"))
+;; as we quite like to get things back when we create them, there is a function
+;; that performs these two operations behind the scenes.
+(def some-other-db (arango/create-and-get-db conn "someOtherDB"))
+;; db is a database "handle".
+(def coll (d/create-and-get-collection db "Simpsons" {:type :document}))
 ```
 
 Clojure wrappers for the arangodb java client and velocypack libs
