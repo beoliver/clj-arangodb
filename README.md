@@ -1,4 +1,9 @@
 # clj-arangodb
+
+Arangodb is a multi-modal database.
+
+The maintainers of arangodb provide a java driver for communicating with an arangodb server.
+
 Clojure wrappers for the arangodb java client and velocypack libs
 
 Early statges an will definitely change
