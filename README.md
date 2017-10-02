@@ -12,9 +12,16 @@ In the clojure version we are doing exactly the same thing under the hood.
 ```clojure
 (def arango-db (connect {:useProtocol :vst :host "192.168.182.50" :port 8888}))
 ```
-Where possible the keys to maps are identical to the methods in the java-driver. By default the java driver connectes to arangodb using something called a velocystream. this has some implications - firstly it is in theory more efficient, secondly we need to be aware of something called velocypacks!
+Where possible the keys to maps are identical to the methods in the java-driver. By default the java driver connectes to arangodb using something called a velocystream. this has some implications - firstly it is in theory more efficient, secondly we need to be aware of something called velocypacks - but we will come to that later.
 
-
+So lets begin with a simple example.
+```clojure
+(require '[clj-arangodb.arangodb.core :as arangodb])
+;; the .core ns provides functions for creating connections and working with databases
+(def conn (arango/connect {:user "dev" :password "123"}))
+;; we create a connection - this is for my local instace. If no credentials are used then
+;; it falls back to the defaults for the java-driver ("root")
+```
 
 Clojure wrappers for the arangodb java client and velocypack libs
 
