@@ -12,11 +12,67 @@
    com.arangodb.ArangoCollection
    com.arangodb.entity.CollectionEntity
    com.arangodb.ArangoDBException
-   com.arangodb.velocypack.VPackSlice))
+   com.arangodb.velocypack.VPackSlice
+   com.arangodb.model.CollectionCreateOptions
+   com.arangodb.entity.CollectionType
+   com.arangodb.entity.BaseDocument))
 
+(defn- ^CollectionCreateOptions collection-type-option
+  "one of `:edge` or `:document`"
+  [^CollectionCreateOptions collection-options
+   {:keys [type] :as user-options}]
+  (case type
+    :document (.type collection-options CollectionType/DOCUMENT)
+    :edge (.type collection-options CollectionType/EDGES)
+    collection-options))
 
+(defn- ^CollectionCreateOptions replication-factor-option
+  "a number that can be cast to int"
+  [^CollectionCreateOptions collection-options
+   {:keys [replicationFactor] :as user-options}]
+  (if replicationFactor
+    (.replicationFactor collection-options (int replication-factor))
+    collection-options))
 
+(defn- ^CollectionCreateOptions wait-for-sync-option
+  "a `bool`. Default is `false`"
+  [^CollectionCreateOptions collection-options
+   {:keys [waitForSync] :as user-options}]
+  (if waitForSync
+    (.waitForSync collection-options wait-for-sync)
+    collection-options))
 
+(defn create-options
+  "given a map return a `CollectionCreateOptions` object
+  returns nil if nil is passed"
+  [{:keys [type waitForSync replicationFactor] :as options}]
+  (when options
+    (-> (new CollectionCreateOptions)
+        (replication-factor-option options)
+        (wait-for-sync-option options)
+        (collection-type-option options))))
+
+;;  :journalSize String
+;;  :replicationFactor Int
+;;  :allowUserKeys {}
+;;  :waitForSync Boolean (default is false)
+;;  :doCompact Boolean (default is true)
+;;  :isVolatile Boolean (default is false)
+;;  :shardKeys [Array String]
+;;  :numberOfShards Integer
+;;  :isSystem Boolean (default false - name must start with _)
+;;  :type Type What type of collection to create
+;;  :indexBuckets Integer ;;
+;;         The default is 16 and this number has to be a power of 2
+;;         and less than or equal to 1024
+;;
+
+(defn get-by-example [coll example]
+
+  )
+
+(defn ^CollectionEntity rename [coll new-name]
+  (.rename coll new-name))
 
 
 (defn insert-doc

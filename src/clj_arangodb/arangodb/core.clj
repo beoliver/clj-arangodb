@@ -10,7 +10,6 @@
 ;;; first parameter.
 ;;; Included is the function `connect` that creates a connection to a database
 
-
 ;;; builders that are threaded on a call to `connect`.
 ;;; the options map is checked for relevant keywords
 ;;; if none are found then each function is ignored
@@ -23,9 +22,9 @@
     builder))
 
 (defn- ^ArangoDB$Builder add-protocol
-  [^ArangoDB$Builder builder {:keys [protocol] :as options}]
-  (if protocol
-    (.useProtocol builder (utils/keyword->Protocol protocol))
+  [^ArangoDB$Builder builder {:keys [useProtocol] :as options}]
+  (if useProtocol
+    (.useProtocol builder (utils/keyword->Protocol useProtocol))
     builder))
 
 (defn- ^ArangoDB$Builder add-user
@@ -41,8 +40,8 @@
     builder))
 
 (defn- ^ArangoDB$Builder add-ssl-context
-  [^ArangoDB$Builder builder {:keys [^SSLContext ssl] :as options}]
-  (if ssl
+  [^ArangoDB$Builder builder {:keys [^SSLContext sslContext] :as options}]
+  (if sslContext
     (-> builder (.sslContext ssl) (.useSsl true) )
     builder))
 
@@ -59,28 +58,29 @@
     builder))
 
 (defn- ^ArangoDB$Builder add-max-connections
-  [^ArangoDB$Builder builder {:keys [^Integer max-connections] :as options}]
-  (if max-connections
-    (.maxConnections (int max-connections))
+  [^ArangoDB$Builder builder {:keys [^Integer maxConnections] :as options}]
+  (if maxConnections
+    (.maxConnections (int maxConnections))
     builder))
 
 (defn ^ArangoDB connect
   "Takes an optional map that may contain the following:
-  :host String
-  :port Integer | Long
-  :user String
-  :password String
-  :protocol :vst | :http-json | :http-vpack (:vst by default)
-  :ssl SSlContext
+   keys have the same names as the methods in the java-driver (makes documention easier)
+  :host a String default is '127.0.0.1'
+  :port an Integer or Long default is 8529
+  :user a String default is 'root'
+  :password String by default no password is used
+  :useProtocol :vst | :http-json | :http-vpack (:vst by default)
+  :sslContext SSlContext not used
   :timeout Integer | Long
   :chunksize Integer | Long
-  :max-connections Integer | Long
+  :maxConnections Integer | Long
   If no options are passed - the defaults of the java-driver are used:
   https://github.com/arangodb/arangodb-java-driver
   "
   ([]
    (connect {}))
-  ([{:keys [host port user password] :as options}]
+  ([{:keys [host port user password protocol ssl timeout chunksize maxConnections] :as options}]
    (.build (-> (new ArangoDB$Builder)
                (add-host-port options)
                (add-protocol options)
@@ -102,8 +102,8 @@
   [^ArangoDB conn ^String db-name]
   (-> conn (.db db-name)))
 
-(defn ^Boolean create-and-get-db
-  "returns an `ArrangoDatabase` handler"
+(defn ^ArangoDatabase create-and-get-db
+  "returns an `ArrangoDatabase` handler. This is just short hand for create-db and get-db"
   [^ArangoDB conn ^String db-name]
   (do (create-db conn db-name)
       (get-db conn db-name)))
@@ -112,14 +112,19 @@
   "returns a `seq` of strings corresponding to the names of databases"
   [^ArangoDB conn] (seq (.getDatabases conn)))
 
-(defn drop-db
+(defn ^Boolean drop-db
   "returns `true` if database with `db-name` was dropped else `ArangoDBException`"
   [^ArangoDB conn ^String db-name]
   (-> conn (.db db-name) .drop))
 
-(defn drop-db-if-exists
-  "returns `true` if database with `db-name` was dropped else `nil`.
+(defn ^Boolean drop-db-if-exists
+  "returns `true` if database with `db-name` was dropped else `false`.
   Usefull for testing when you dont want to worry about try catch."
   [^ArangoDB conn ^String db-name]
   (try (drop-db conn db-name)
-       (catch ArangoDBException e nil)))
+       (catch ArangoDBException e false)))
+
+
+(defn map-to-base-document
+
+  )

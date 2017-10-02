@@ -13,9 +13,35 @@
 (defn -let [who what]
   (format "LET %s = %s\n" (name who) (name what)))
 
-
 (defn query [& lines]
   (apply str lines))
+
+(def example
+  [[:for "s" "simpsons"]
+   [:filter [:and
+             "u.type == newbie"
+             "u.active == true"
+             ]]
+   [:return "u.name"]
+   ]
+  )
+
+(defn parse [x]
+  (if (string? x)
+    x
+    (case (first x)
+      :return (format "RETURN %" (parse (nth x 1)))
+      :for (format "FOR %s IN %s "
+                   (parse (nth x 1))
+                   (parse (nth x 2)))
+      :filter (format "FILER %s " (parse (nth x 1)))
+
+      )))
+
+
+"EXPR = FOR var IN var EXPR"
+"SUBEXPR = "
+"SUBEXPR = RETURN var"
 
 ;; FOR: array iteration
 ;; RETURN: results projection
