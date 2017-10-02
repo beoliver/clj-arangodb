@@ -39,6 +39,14 @@ arangoDB.db("myDatabase").createCollection("myCollection", null);
 ```
 And in clojure
 ```clojure
+(def conn (.build (-> (new ArangoDB$Builder)
+                      (.user "dev")
+                      (.password "123"))))
+(-> conn (.createDatabase "myDatabase"))
+(-> conn (.db "myDatabase") (.createCollection "myCollection"))
+```
+Using this library
+```clojure
 (def conn (arango/connect {:user "dev" :password "123"}))
 (arango/create-db conn "myDatabase")
 (-> conn (arango/get-db "myDatabase") (d/create-collection "myCollection"))
