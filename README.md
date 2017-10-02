@@ -27,9 +27,17 @@ So lets begin with a simple example.
 ;; as we quite like to get things back when we create them, there is a function
 ;; that performs these two operations behind the scenes.
 (def some-other-db (arango/create-and-get-db conn "someOtherDB"))
-;; db is a database "handle".
-(def coll (d/create-and-get-collection db "Simpsons" {:type :document}))
+;; db is a database "handle". In real terms, it is a java object with certain methods on it.
+(require '[clj-arangodb.arangodb.databases :as d])
+(def coll (d/create-and-get-collection db "Simpsons"))
 ```
+If we look at how the same would be done in java (from the example page)
+```java
+ArangoDB arangoDB = new ArangoDB.Builder().user("dev").password("123").build();
+arangoDB.createDatabase("myDatabase");
+arangoDB.db("myDatabase").createCollection("myCollection", null);
+```
+
 
 Clojure wrappers for the arangodb java client and velocypack libs
 
