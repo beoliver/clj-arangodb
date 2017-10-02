@@ -17,7 +17,7 @@
 
 (defn- ^ArangoDB$Builder add-host-port
   [^ArangoDB$Builder builder {:keys [^String host ^Integer port] :as options}]
-  (if (or host port)
+  (if (and host port)
     (.host builder host (int port))
     builder))
 

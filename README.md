@@ -2,7 +2,19 @@
 
 Arangodb is a multi-modal database.
 
-The maintainers of arangodb provide a java driver for communicating with an arangodb server.
+The maintainers of arangodb provide a java driver for communicating with an arangodb server. This library provides clojure developers a clean interface. Much like monger, the java implementation is still visible.
+
+If we look at how the java code is used, in this example a new connecton is being made to a server.
+```
+ArangoDB arangoDB = new ArangoDB.Builder().useProtocol(Protocol.VST).host("192.168.182.50", 8888).build();
+```
+In the clojure version we are doing exactly the same thing under the hood.
+```
+(def arango-db (connect {:useProtocol :vst :host "192.168.182.50" :port 8888}))
+```
+Where possible the keys to maps are identical to the methods in the java-driver. By default the java driver connectes to arangodb using something called a velocystream. this has some implications - firstly it is in theory more efficient, secondly we need to be aware of something called velocypacks!
+
+
 
 Clojure wrappers for the arangodb java client and velocypack libs
 
