@@ -51,6 +51,13 @@ Using this library
 (arango/create-db conn "myDatabase")
 (-> conn (arango/get-db "myDatabase") (d/create-collection "myCollection"))
 ```
+Which to be honest, doesn't look great.
+```clojure
+(require '[clj-arangodb.arangodb.by-name :as arango])
+(def conn (arango/connect {:user "dev" :password "123"}))
+(arango/create-db conn "myDatabase")
+(arango/create-collection conn "myDatabase" "myCollection")
+```
 
 Clojure wrappers for the arangodb java client and velocypack libs
 
