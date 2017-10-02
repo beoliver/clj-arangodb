@@ -37,7 +37,12 @@ ArangoDB arangoDB = new ArangoDB.Builder().user("dev").password("123").build();
 arangoDB.createDatabase("myDatabase");
 arangoDB.db("myDatabase").createCollection("myCollection", null);
 ```
-
+And in clojure
+```clojure
+(def conn (arango/connect {:user "dev" :password "123"}))
+(arango/create-db conn "myDatabase")
+(-> conn (arango/get-db "myDatabase") (d/create-collection "myCollection"))
+```
 
 Clojure wrappers for the arangodb java client and velocypack libs
 
