@@ -48,9 +48,6 @@
   ([^ArangoDatabase db ^String coll-name]
    (.collection db coll-name)))
 
-(defn collection-exists? [db collname]
-  (boolean (some #{collname} (map :name (get-collections db)))))
-
 (defn ^ArangoCollection create-and-get-collection
   "Returns a handler of the collection by the given name
   Always returns a new `ArrangoCollection` even if no such collection exists.
@@ -69,6 +66,9 @@
             (update :status str)
             (update :type str))
        (.getCollections db)))
+
+(defn collection-exists? [db collname]
+  (boolean (some #{collname} (map :name (get-collections db)))))
 
 (defn ^GraphEntity create-graph
   "Create a new graph `graph-name`. edge-definitions must be a not empty
