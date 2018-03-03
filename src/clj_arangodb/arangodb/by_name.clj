@@ -40,3 +40,17 @@
 (defn get-collections
   ([conn db-name]
    (-> (a/get-db db-name) d/get-collections)))
+
+(defn collection-exists?
+  [conn db-name coll-name]
+  (-> conn (.db db-name) (d/collection-exists? coll-name)))
+
+(defn drop-collection
+  [conn db-name coll-name]
+  (-> conn (.db db-name) (d/drop-collection coll-name)))
+
+(defn get-document
+  ([conn db-name coll-name key]
+   (-> conn (.db db-name) (.collection coll-name) (c/get-doc-by-key key)))
+  ([conn db-name id]
+   (-> conn (.db db-name) (d/get-doc-by-id id))))

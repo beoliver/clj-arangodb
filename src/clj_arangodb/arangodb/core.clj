@@ -1,10 +1,18 @@
 (ns clj-arangodb.arangodb.core
-  (:require [clj-arangodb.arangodb.utils :as utils])
+  ""
+  (:require
+   [clojure.set :as set]
+   [clj-arangodb.arangodb.utils :as utils]
+   [clj-arangodb.arangodb.collections :as collections])
   (:import
    com.arangodb.ArangoDB$Builder
    com.arangodb.ArangoDB
    com.arangodb.ArangoDatabase
-   com.arangodb.ArangoDBException))
+   com.arangodb.ArangoCollection
+   com.arangodb.ArangoDBException
+   com.arangodb.entity.CollectionEntity
+   com.arangodb.model.CollectionCreateOptions
+   com.arangodb.velocypack.VPackSlice))
 
 ;;; This namespace includes all functions that take an ArangoDB object as the
 ;;; first parameter.
@@ -42,7 +50,7 @@
 (defn- ^ArangoDB$Builder add-ssl-context
   [^ArangoDB$Builder builder {:keys [^SSLContext sslContext] :as options}]
   (if sslContext
-    (-> builder (.sslContext ssl) (.useSsl true) )
+    (-> builder (.sslContext sslContext) (.useSsl true) )
     builder))
 
 (defn- ^ArangoDB$Builder add-timeout
@@ -108,9 +116,14 @@
   (do (create-db conn db-name)
       (get-db conn db-name)))
 
-(defn get-dbs
+(defn get-db-names
   "returns a `seq` of strings corresponding to the names of databases"
   [^ArangoDB conn] (seq (.getDatabases conn)))
+
+(defn db-exists?
+  "returns true if `db-name` is an existsing db"
+  [^ArangoDB conn ^String db-name]
+  (boolean (some #{db-name} (get-db-names conn))))
 
 (defn ^Boolean drop-db
   "returns `true` if database with `db-name` was dropped else `ArangoDBException`"
@@ -118,13 +131,127 @@
   (-> conn (.db db-name) .drop))
 
 (defn ^Boolean drop-db-if-exists
-  "returns `true` if database with `db-name` was dropped else `false`.
+  "returns `true` if database with `db-name` was dropped else `nil`.
   Usefull for testing when you dont want to worry about try catch."
   [^ArangoDB conn ^String db-name]
   (try (drop-db conn db-name)
-       (catch ArangoDBException e false)))
+       (catch ArangoDBException e nil)))
 
+(defn ^ArangoCollection get-collection
+  "Returns a handler of the collection by the given name
+  Always returns a new `ArrangoCollection` even if no such collection exists.
+  The returned object can be used if a collection is created at a later time"
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (get-collection (.db conn db-name) coll-name))
+  ([^ArangoDatabase db ^String coll-name]
+   (.collection db coll-name)))
 
-(defn map-to-base-document
+(defn get-collections
+  "returns a `lazySeq` of maps with keys
+  `:id`, `:isSystem`, `:isVolatile`, `:name`, `:status`, `:type`, `:waitForSync`.
+  The returned values are not handles"
+  ([^ArangoDB conn ^String db-name]
+   (get-collections (.db conn db-name)))
+  ([^ArangoDatabase db] (map #(-> % bean
+                                  (dissoc :class)
+                                  (update :status str)
+                                  (update :type str))
+                             (.getCollections db))))
 
-  )
+(defn collection-exists? ^Boolean
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (collection-exists? (.db conn db-name) coll-name))
+  ([^ArangoDatabase db ^String coll-name]
+   (boolean (some #{coll-name} (map :name (get-collections db))))))
+
+(defn create-collection
+  "create a new collection entity.
+  `options` is clojure `map` that will be converted into an `CollectionCreateOptions`.
+  by a call to `collections/create-options`"
+  ([^ArangoDB conn ^String db-name ^String coll-name options]
+   (create-collection (.db conn db-name) coll-name options))
+  ([^ArangoDatabase db ^String coll-name options]
+   (-> (.createCollection db coll-name (collections/create-options options))
+       bean
+       (dissoc :class))))
+
+(defn create-vertex-collection
+  "create a new vertex collection using default options."
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (create-vertex-collection (.db conn db-name) coll-name))
+  ([^ArangoDatabase db ^String coll-name]
+   (.createCollection db coll-name nil)))
+
+(defn create-edge-collection
+  "create a new vertex collection using default options."
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (create-edge-collection (.db conn db-name) coll-name))
+  ([^ArangoDatabase db ^String coll-name]
+   (create-collection db coll-name {:type :edges})))
+
+(defn drop-collection
+  ""
+  ([^ArangoDB conn ^String db-name ^String coll-name]
+   (drop-collection (.db conn db-name) coll-name))
+  ([^ArangoDatabase db ^String coll-name]
+   (-> db (.collection coll-name) .drop)))
+
+(defn insert-doc
+  "works with VelocyPack (VPackSlice) and Json (String).
+  returns a map with keys `:_id` `:_key` `:_new` and `:_rev`"
+  ([^ArangoDB conn ^String db ^String coll-name doc]
+   (insert-doc (get-collection conn db coll-name) doc))
+  ([^ArangoDatabase db ^String coll-name doc]
+   (insert-doc (get-collection db coll-name) doc))
+  ([^ArangoCollection coll doc]
+   (-> (.insertDocument coll doc)
+       bean
+       (dissoc :class)
+       (set/rename-keys {:id :_id :key :_key :new :_new :rev :_rev}))))
+
+(defn insert-docs
+  "works with VelocyPack (VPackSlice) and Json (String).
+  returns an array list with maps containing keys `:id` `:key` `:new` and `:rev`"
+  ([^ArangoCollection coll ^java.util.ArrayList docs]
+   (-> (.insertDocuments coll docs)
+       bean
+       (update :documentsAndErrors
+               #(map (fn [x] (-> (bean x)
+                                 (dissoc :class)
+                                 (set/rename-keys {:id :_id
+                                                   :key :_key
+                                                   :new :_new
+                                                   :rev :_rev}))) %))
+       (get :documentsAndErrors)))
+  ([^ArangoDatabase db ^String coll-name ^java.util.ArrayList docs]
+   (-> db (.collection coll-name) (insert-docs docs)))
+  ([^ArangoDB conn ^String db-name ^String coll-name ^java.util.ArrayList docs]
+   (-> conn (.db db-name) (insert-docs coll-name docs))))
+
+(defn get-json-by-id ^String
+  ([^ArangoDB conn ^String db-name ^String id]
+   (get-json-by-id (.db conn db-name) id))
+  ([^ArangoDatabase db ^String id]
+   (.getDocument db id String)))
+
+(defn get-json-by-key ^String
+  ([^ArangoDB conn ^String db-name ^String coll-name ^String key]
+   (get-json-by-key (get-collection conn db-name coll-name) key))
+  ([^ArangoDatabase db ^String coll-name ^String key]
+   (get-json-by-key (get-collection db coll-name) key))
+  ([^ArangoCollection coll ^String key]
+   (.getDocument coll key String)))
+
+(defn get-vpack-by-id ^VPackSlice
+  ([^ArangoDB conn ^String db-name ^String id]
+   (get-vpack-by-id (.db conn db-name) id))
+  ([^ArangoDatabase db ^String id]
+   (.getDocument db id VPackSlice)))
+
+(defn get-vpack-by-key ^VPackSlice
+  ([^ArangoDB conn ^String db-name ^String coll-name ^String key]
+   (get-vpack-by-key (get-collection conn db-name coll-name) key))
+  ([^ArangoDatabase db ^String coll-name ^String key]
+   (get-vpack-by-key (get-collection db coll-name) key))
+  ([^ArangoCollection coll ^String key]
+   (.getDocument coll key VPackSlice)))

@@ -23,7 +23,7 @@
    {:keys [type] :as user-options}]
   (case type
     :document (.type collection-options CollectionType/DOCUMENT)
-    :edge (.type collection-options CollectionType/EDGES)
+    :edges (.type collection-options CollectionType/EDGES)
     collection-options))
 
 (defn- ^CollectionCreateOptions replication-factor-option
@@ -31,7 +31,7 @@
   [^CollectionCreateOptions collection-options
    {:keys [replicationFactor] :as user-options}]
   (if replicationFactor
-    (.replicationFactor collection-options (int replication-factor))
+    (.replicationFactor collection-options (int replicationFactor))
     collection-options))
 
 (defn- ^CollectionCreateOptions wait-for-sync-option
@@ -39,7 +39,23 @@
   [^CollectionCreateOptions collection-options
    {:keys [waitForSync] :as user-options}]
   (if waitForSync
-    (.waitForSync collection-options wait-for-sync)
+    (.waitForSync collection-options waitForSync)
+    collection-options))
+
+(defn- ^CollectionCreateOptions is-volatile-option
+  "a `bool`. Default is `false`"
+  [^CollectionCreateOptions collection-options
+   {:keys [isVolatile] :as user-options}]
+  (if isVolatile
+    (.isVolatile collection-options isVolatile)
+    collection-options))
+
+(defn- ^CollectionCreateOptions number-of-shards-option
+  "an `int`. Default is `?`"
+  [^CollectionCreateOptions collection-options
+   {:keys [numberOfShards] :as user-options}]
+  (if numberOfShards
+    (.numberOfShards collection-options (int numberOfShards))
     collection-options))
 
 (defn create-options
@@ -50,6 +66,8 @@
     (-> (new CollectionCreateOptions)
         (replication-factor-option options)
         (wait-for-sync-option options)
+        (is-volatile-option options)
+        (number-of-shards-option options)
         (collection-type-option options))))
 
 ;;  :journalSize String
@@ -66,10 +84,6 @@
 ;;         The default is 16 and this number has to be a power of 2
 ;;         and less than or equal to 1024
 ;;
-
-(defn get-by-example [coll example]
-
-  )
 
 (defn ^CollectionEntity rename [coll new-name]
   (.rename coll new-name))

@@ -117,7 +117,7 @@
   (cond (map? xs)
         (.slice (build-map (-> (new VPackBuilder) (.add ValueType/OBJECT)) xs))
         ((some-fn string? number? nil?) xs) (pack-one xs)
-        (utils/seqable? xs)
+        (seqable? xs)
         (.slice (build-array (-> (new VPackBuilder) (.add ValueType/ARRAY)) xs))
         :else (pack-one xs)))
 
@@ -131,9 +131,9 @@
                       (string? elem) (.add builder elem)
                       (nil? elem) (.add builder elem)
                       ;; (number? elem) (.add builder elem)
-                      (utils/seqable? elem) (-> builder
-                                                (.add ValueType/ARRAY)
-                                                (build-array elem))
+                      (seqable? elem) (-> builder
+                                          (.add ValueType/ARRAY)
+                                          (build-array elem))
                       :else (.add builder elem))) builder seq)
       .close))
 
@@ -147,9 +147,9 @@
                     (string? v) (.add builder (utils/normalize k) v)
                     (nil? v) (.add builder (utils/normalize k) nil)
                     (number? v) (.add builder (utils/normalize k) v)
-                    (utils/seqable? v) (-> builder
-                                           (.add (utils/normalize k) ValueType/ARRAY)
-                                           (build-array (seq v)))
+                    (seqable? v) (-> builder
+                                     (.add (utils/normalize k) ValueType/ARRAY)
+                                     (build-array (seq v)))
                     :else (.add builder (utils/normalize k) v)))
             $ m)
     (.close $)))
