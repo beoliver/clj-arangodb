@@ -65,7 +65,8 @@
    (.graph db graph-name)))
 
 (defn query
-  ([^ArangoDatabase db ^String query]
-   (vpack/unpack (query db query nil VPackSlice)))
-  ([^ArangoDatabase db ^String query ^AqlQueryOptions options ^Class as]
-   (.query db query options as)))
+  ;; can pass java.util.Map / java.util.List as well
+  ([^ArangoDatabase db ^String query-str]
+   (query db query-str nil nil VPackSlice))
+  ([^ArangoDatabase db ^String query-str bindvars ^AqlQueryOptions options ^Class as]
+   (.query db query-str bindvars options as)))
