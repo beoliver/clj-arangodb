@@ -1,27 +1,22 @@
 (ns clj-arangodb.arangodb.collections
   (:require [clj-arangodb.velocypack.core :as vpack]
-            [clj-arangodb.arangodb.collection-options :as options]
             [clj-arangodb.arangodb.utils :as utils]
-            [clj-arangodb.arangodb.graph :as g]
             [clj-arangodb.arangodb.utils :refer [maybe-vpack MultiDocumentEntity->map]])
   (:import
    com.arangodb.ArangoCollection
    com.arangodb.entity.CollectionEntity
-   com.arangodb.ArangoEdgeCollection
-   com.arangodb.ArangoVertexCollection
    com.arangodb.velocypack.VPackSlice
-   com.arangodb.model.VertexCreateOptions
-   com.arangodb.model.EdgeCreateOptions
    com.arangodb.model.DocumentCreateOptions
    com.arangodb.model.DocumentReadOptions
    com.arangodb.model.DocumentReplaceOptions
-   com.arangodb.model.DocumentUpdateOptions)
+   com.arangodb.model.DocumentUpdateOptions
+   com.arangodb.model.DocumentDeleteOptions)
   (:refer-clojure :exclude [drop]))
 
 (defn ^CollectionEntity rename [^ArangoCollection coll ^String new-name]
   (.rename coll new-name))
 
-(defn get-map
+(defn get-document-as-map
   ([^ArangoCollection coll key]
    (vpack/unpack (.getDocument coll key VPackSlice) keyword))
   ([^ArangoCollection coll key key-fn]
@@ -87,24 +82,3 @@
 (defn drop
   ([^ArangoCollection coll] (.drop coll))
   ([^ArangoCollection coll ^Boolean flag] (.drop coll flag)))
-
-(defn get-edge
-  ([^ArangoEdgeCollection coll ^String key ^Class as] (.getEdge coll key as))
-  ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (.getEdge coll key as options)))
-
-(defn insert-edge
-  ([^ArangoEdgeCollection coll {:keys [_from _to] :as doc}]
-   (.insertEdge coll doc))
-  ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
-   (.insertEdge coll doc options)))
-
-(defn get-vertex
-  [^ArangoVertexCollection coll key ^Class as]
-  (.getVertex coll key as))
-
-(defn insert-vertex
-  ([^ArangoVertexCollection coll doc]
-   (.insertVertex coll doc))
-  ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
-   (.insertVertex coll doc options)))

@@ -1,11 +1,12 @@
 (ns clj-arangodb.arangodb.databases
   (:require [clojure.set :as set]
             [clj-arangodb.velocypack.core :as vpack]
-            [clj-arangodb.arangodb.graph :as g]
+            [clj-arangodb.arangodb.graph :as graph]
             [clojure.reflect :as r])
   (:import
    com.arangodb.ArangoDB$Builder
    com.arangodb.ArangoDB
+   com.arangodb.ArangoCursor
    com.arangodb.ArangoDatabase
    com.arangodb.ArangoGraph
    com.arangodb.ArangoCollection
@@ -64,7 +65,7 @@
   ([^ArangoDatabase db ^String graph-name]
    (.graph db graph-name)))
 
-(defn query
+(defn ^ArangoCursor query
   ;; can pass java.util.Map / java.util.List as well
   ([^ArangoDatabase db ^String query-str]
    (query db query-str nil nil VPackSlice))

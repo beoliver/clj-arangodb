@@ -1,12 +1,19 @@
 (ns clj-arangodb.arangodb.graph
   (:require
    [clj-arangodb.velocypack.core :as v]
-   [pjson.core :as json]
    [clojure.set :as set]
    [clojure.reflect :as r])
   (:import com.arangodb.entity.EdgeDefinition
            com.arangodb.ArangoGraph
-           com.arangodb.velocypack.VPackSlice))
+           com.arangodb.ArangoEdgeCollection
+           com.arangodb.ArangoVertexCollection
+           com.arangodb.model.VertexCreateOptions
+           com.arangodb.model.EdgeCreateOptions
+           com.arangodb.velocypack.VPackSlice
+           com.arangodb.model.DocumentCreateOptions
+           com.arangodb.model.DocumentReadOptions
+           com.arangodb.model.DocumentReplaceOptions
+           com.arangodb.model.DocumentUpdateOptions))
 
 (defn make-multigraph [edge-collection-name edges]
   ;; an edge is of the from ["source" ["target_1" ... "target_n"]]
@@ -45,3 +52,25 @@
       (.collection name)
       (.from (into-array from))
       (.to (into-array to))))
+
+
+(defn get-edge
+  ([^ArangoEdgeCollection coll ^String key ^Class as] (.getEdge coll key as))
+  ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
+   (.getEdge coll key as options)))
+
+(defn insert-edge
+  ([^ArangoEdgeCollection coll {:keys [_from _to] :as doc}]
+   (.insertEdge coll doc))
+  ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
+   (.insertEdge coll doc options)))
+
+(defn get-vertex
+  [^ArangoVertexCollection coll key ^Class as]
+  (.getVertex coll key as))
+
+(defn insert-vertex
+  ([^ArangoVertexCollection coll doc]
+   (.insertVertex coll doc))
+  ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
+   (.insertVertex coll doc options)))
