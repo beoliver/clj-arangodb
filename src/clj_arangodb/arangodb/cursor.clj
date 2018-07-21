@@ -2,7 +2,8 @@
   (:import com.arangodb.internal.ArangoCursorImpl
            com.arangodb.internal.ArangoCursorIterator
            com.arangodb.internal.ArangoCursorExecute
-           com.arangodb.ArangoCursor)
+           com.arangodb.ArangoCursor
+           )
   (:refer-clojure :exclude [next first map filter count]))
 
 (defn has-next [cursor]

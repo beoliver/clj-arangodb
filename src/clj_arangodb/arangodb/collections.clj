@@ -1,11 +1,14 @@
 (ns clj-arangodb.arangodb.collections
   (:require [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.utils :as utils]
+            [clj-arangodb.arangodb.conversions :as conv]
             [clj-arangodb.arangodb.utils :refer [maybe-vpack MultiDocumentEntity->map]])
   (:import
    com.arangodb.ArangoCollection
    com.arangodb.entity.CollectionEntity
    com.arangodb.velocypack.VPackSlice
+   com.arangodb.entity.BaseDocument
+   com.arangodb.entity.BaseEdgeDocument
    com.arangodb.model.DocumentCreateOptions
    com.arangodb.model.DocumentReadOptions
    com.arangodb.model.DocumentReplaceOptions
@@ -22,7 +25,18 @@
   ([^ArangoCollection coll key key-fn]
    (vpack/unpack (.getDocument coll key VPackSlice) key-fn)))
 
+(defn get-base-document-map
+  ([^ArangoCollection coll key]
+   (-> (.getDocument coll key BaseDocument)
+       conv/bean-no-class)))
+
 (defn get-document
+  "
+   Class represents the class of the returned document.
+  `String` will return a json encoding
+  `VpackSlice` will return a arangodb velocypack slice
+  `BaseDocument` will return a java object
+  "
   ([^ArangoCollection coll ^String key ^Class as]
    (.getDocument coll key as))
   ([^ArangoCollection coll ^String key ^Class as ^DocumentReadOptions options]

@@ -3,10 +3,12 @@
   (:require
    [clojure.set :as set]
    [clj-arangodb.arangodb.options :as options]
+   [clj-arangodb.arangodb.conversions :as conv]
    [clj-arangodb.arangodb.utils :as utils])
   (:import
    com.arangodb.ArangoDB
-   com.arangodb.ArangoDatabase))
+   com.arangodb.ArangoDatabase
+   com.arangodb.entity.BaseDocument))
 
 (defn ^ArangoDB connect
   "
@@ -35,9 +37,17 @@
   [^ArangoDB conn ^String db-name]
   (.db conn db-name))
 
+(def get-database db)
+
+(defn ^Boolean create-and-get-database
+  ""
+  [^ArangoDB conn ^String db-name]
+  (do (.createDatabase conn db-name)
+      (.db conn db-name)))
+
 (defn get-databases
-  "returns a `seq` of strings corresponding to the names of databases"
-  [^ArangoDB conn] (seq (.getDatabases conn)))
+  "returns a `vec` of strings corresponding to the names of databases"
+  [^ArangoDB conn] (vec (.getDatabases conn)))
 
 (defn database?
   "returns true if `db-name` is an existsing db"
