@@ -1,130 +1,124 @@
 (ns clj-arangodb.arangodb.databases
   (:require [clojure.set :as set]
+            [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.graph :as graph]
-            [clj-arangodb.arangodb.collections :as collections]
-            [pjson.core :as json]
-            [clojure.walk :as walk]
-            [clj-arangodb.arangodb.utils :as utils]
-            [clj-arangodb.arangodb.graph :as g]
+            [clj-arangodb.arangodb.conversions :as conv]
             [clojure.reflect :as r])
   (:import
+   com.arangodb.velocypack.VPackSlice
    com.arangodb.ArangoDB$Builder
    com.arangodb.ArangoDB
+   com.arangodb.ArangoCursor
    com.arangodb.ArangoDatabase
    com.arangodb.ArangoGraph
    com.arangodb.ArangoCollection
+   com.arangodb.model.DocumentReadOptions
    com.arangodb.entity.CollectionEntity
    com.arangodb.entity.GraphEntity
    com.arangodb.ArangoDBException
    com.arangodb.velocypack.VPackSlice
-   com.arangodb.model.CollectionCreateOptions))
+   com.arangodb.model.CollectionCreateOptions
+   com.arangodb.model.AqlQueryOptions)
+  (:refer-clojure :exclude [drop]))
+
+(defn drop [^ArangoDatabase db] (.drop db))
+
+(defn get-map
+  ([^ArangoDatabase db id]
+   (vpack/unpack (.getDocument db id VPackSlice) keyword))
+  ([^ArangoDatabase db id key-fn]
+   (vpack/unpack (.getDocument db id VPackSlice) key-fn)))
+
+(defn get-document-as-map
+  ([^ArangoDatabase db id]
+   (vpack/unpack (.getDocument db id VPackSlice) keyword))
+  ([^ArangoCollection db id key-fn]
+   (vpack/unpack (.getDocument db id VPackSlice) key-fn)))
+
+(defn get-document
+  "
+   Class represents the class of the returned document.
+  `String` will return a json encoding
+  `VpackSlice` will return a arangodb velocypack slice
+  `BaseDocument` will return a java object
+  "
+  ([^ArangoDatabase db ^String id ^Class as]
+   (.getDocument db id as))
+  ([^ArangoDatabase db ^String id ^Class as ^DocumentReadOptions options]
+   (.getDocument db id as options)))
 
 (defn ^CollectionEntity create-collection
-  "create a new collection entity.
-  `options` is either an `CollectionCreateOptions` object or a clojure `map` that will
-  be converted into an `CollectionCreateOptions` by a call to `collections/create-options`"
+  "create a new collection entity"
   ([^ArangoDatabase db ^String coll-name]
-   (-> db (.createCollection coll-name)))
+   (.createCollection db coll-name))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
-   (let [options (if (map? options)
-                   (collections/create-options options)
-                   options)]
-     (-> db (.createCollection coll-name options)))))
+   (.createCollection db coll-name options)))
 
-(defn ^CollectionEntity create-document-collection
-  "create a new collection entity of type `:document`"
-  [^ArangoDatabase db ^String coll-name]
-  (-> db (.createCollection coll-name)))
-
-(defn ^CollectionEntity create-edge-collection
-  "create a new collection entity of type `:edge`"
-  [^ArangoDatabase db ^String coll-name]
-  (create-collection db coll-name {:type :edge}))
-
-(defn ^ArangoCollection get-collection
-  "Returns a handler of the collection by the given name
-  Always returns a new `ArrangoCollection` even if no such collection exists.
-  The returned object can be used if a collection is created at a later time"
+(defn ^ArangoCollection collection
   ([^ArangoDatabase db ^String coll-name]
    (.collection db coll-name)))
 
+(def get-collection collection)
+
 (defn ^ArangoCollection create-and-get-collection
-  "Returns a handler of the collection by the given name
-  Always returns a new `ArrangoCollection` even if no such collection exists.
-  The returned object can be used if a collection is created at a later time"
   ([^ArangoDatabase db ^String coll-name]
-   (do (create-collection db coll-name) (get-collection db coll-name)))
+   (do (.createCollection db coll-name)
+       (.collection db coll-name)))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
-   (do (create-collection db coll-name options) (get-collection db coll-name))))
+   (do (.createCollection db coll-name options)
+       (.collection db coll-name))))
 
 (defn get-collections
-  "returns a `lazySeq` of maps with keys
-  `:id`, `:isSystem`, `:isVolatile`, `:name`, `:status`, `:type`, `:waitForSync`"
-  [db]
-  (map #(-> % bean
-            (dissoc :class)
-            (update :status str)
-            (update :type str))
-       (.getCollections db)))
+  "when called with with a `post-fn` will map over the collection of
+  `CollectionEntity`. By default these objects are converted into
+  clojure maps. If you want the actual Objects, just pass `identity` as
+  the post-fn"
+  ([^ArangoDatabase db] (get-collections db conv/->map))
+  ([^ArangoDatabase db post-fn] (vec (map post-fn (.getCollections db)))))
 
-(defn collection-exists? [db collname]
-  (boolean (some #{collname} (map :name (get-collections db)))))
+(defn get-collection-names
+  "returns a vector of `string`"
+  [^ArangoDatabase db]
+  (get-collections db #(.getName %)))
+
+(defn collection-type
+  [^ArangoDatabase db ^String collection-name]
+  (reduce (fn [_ o]
+            (if (= collection-name (.getName o))
+              (reduced (str (.getType o)))
+              nil)) nil (get-collections db identity)))
+
+(defn get-graphs
+  "when called with with a `post-fn` will map over the collection of
+  `GraphEntity`. By default these objects are converted into
+  clojure maps. If you want the actual Objects, just pass `identity` as
+  the post-fn"
+  ([^ArangoDatabase db] (get-graphs db conv/->map))
+  ([^ArangoDatabase db post-fn] (vec (map post-fn (.getGraphs db)))))
+
+(defn collection-exists? [^ArangoDatabase db collection-name]
+  (some #(= collection-name (.getName %)) (get-collections db identity)))
+
+(defn graph-exists? [^ArangoDatabase db graph-name]
+  (some #(= graph-name (.getName %)) (get-graphs db identity)))
 
 (defn ^GraphEntity create-graph
-  "Create a new graph `graph-name`. edge-definitions must be a not empty
+  "Create a new graph `graph-name`. edge-definitions must be a non empty
   sequence of maps `{:name 'relationName' :from ['collA'...] :to [collB...]}`
   if the names in sources and targets do not exist on the database, then new collections
   will be created."
   [^ArangoDatabase db graph-name edge-definitions]
   (.createGraph db graph-name
-                (map #(if (map? %) (graph/define-edge %) %)
+                (map #(if (map? %) (graph/edge-definition %) %)
                      edge-definitions)))
 
-(defn ^ArangoGraph get-graph
-  "Always returns a new `ArrangoGraph` even if no such collection exists.
-  The returned object can be used if a collection is created at a later time"
+(defn ^ArangoGraph graph
   ([^ArangoDatabase db ^String graph-name]
    (.graph db graph-name)))
 
-
-(defn truncate-coll
-  ""
-  [db coll-name]
-  (-> db (.collection coll-name) .truncate))
-
-(defn drop-collection
-  ""
-  [db coll-name]
-  (-> db (.collection coll-name) .drop))
-
-(defn drop-graph [db graph-name]
-  (-> (.graph db graph-name) .drop))
-
-(defn get-vpack-doc-by-id
-  ([db id] (.getDocument db id VPackSlice))
-  ([conn db-name id] (-> conn (.db db-name) (.getDocument id VPackSlice))))
-
-(defn get-json-doc-by-id*
-  [{:keys [conn db]} id]
-  (-> conn (.db db) (.getDocument id String)))
-
-(defn get-json-doc-by-id
-  ([db id] (.getDocument db id String))
-  ([conn db-name id]
-   (-> conn (.db db-name) (.getDocument id String))))
-
-(defn get-doc-by-id
-  ([db id] (-> (get-json-doc-by-id db id)
-               json/read-str
-               walk/keywordize-keys))
-  ([conn db-name id] (-> (get-json-doc-by-id conn db-name id)
-                         json/read-str
-                         walk/keywordize-keys)))
-
-(def get-edge-by-id get-doc-by-id)
-
-
-
-(defn get-bean-doc-by-id
-  ([db id class] (.getDocument db id class))
-  ([conn db-name id class] (-> conn (.db db-name) (.getDocument id class))))
+(defn ^ArangoCursor query
+  ;; can pass java.util.Map / java.util.List as well
+  ([^ArangoDatabase db ^String query-str]
+   (query db query-str nil nil VPackSlice))
+  ([^ArangoDatabase db ^String query-str bindvars ^AqlQueryOptions options ^Class as]
+   (.query db query-str bindvars options as)))
