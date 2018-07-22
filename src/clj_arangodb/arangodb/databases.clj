@@ -77,7 +77,7 @@
 (defn get-collection-names
   "returns a vector of `string`"
   [^ArangoDatabase db]
-  (get-collections db #(.getName %)))
+  (map #(.getName %) (get-collections db)))
 
 (defn collection-type
   [^ArangoDatabase db ^String collection-name]
