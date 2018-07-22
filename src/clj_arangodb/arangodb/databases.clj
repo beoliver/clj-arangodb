@@ -2,8 +2,9 @@
   (:require [clojure.set :as set]
             [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.graph :as graph]
-            [clj-arangodb.arangodb.utils :refer [maybe-vpack]]
-            [clj-arangodb.arangodb.conversions :refer [->result]]
+            [clj-arangodb.arangodb.adapter :refer [from-entity
+                                                   serialize-doc
+                                                   deserialize-doc]]
             [clj-arangodb.arangodb.options :as options]
             [clojure.reflect :as r])
   (:import
@@ -18,14 +19,21 @@
    com.arangodb.entity.GraphEntity
    com.arangodb.ArangoDBException
    com.arangodb.velocypack.VPackSlice
+   [com.arangodb.entity
+    DatabaseEntity]
    [com.arangodb.model
     DocumentReadOptions
     CollectionCreateOptions
+    CollectionsReadOptions
+    GraphCreateOptions
     AqlQueryOptions])
   (:refer-clojure :exclude [drop]))
 
-(defn drop [^ArangoDatabase db]
-  (->result (.drop db)))
+(defn ^Boolean exists? [^ArangoDatabase db] (.exists db))
+
+(defn ^Boolean drop [^ArangoDatabase db] (.drop db))
+
+(defn ^DatabaseEntity get-info [^ArangoDatabase db] (from-entity (.getInfo db)))
 
 (defn get-document
   "
@@ -37,34 +45,35 @@
   ([^ArangoDatabase db ^String id]
    (get-document db id VPackSlice))
   ([^ArangoDatabase db ^String id ^Class as]
-   (->result (.getDocument db id as)))
+   (deserialize-doc (.getDocument db id as)))
   ([^ArangoDatabase db ^String id ^Class as ^DocumentReadOptions options]
-   (->result (.getDocument db id as options))))
+   (deserialize-doc (.getDocument db id as options))))
 
 (defn ^CollectionEntity create-collection
   "create a new collection entity"
   ([^ArangoDatabase db ^String coll-name]
-   (->result (.createCollection db coll-name)))
+   (from-entity (.createCollection db coll-name)))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
-   (->result (.createCollection db coll-name (options/build CollectionCreateOptions options)))))
+   (from-entity (.createCollection db coll-name (options/build CollectionCreateOptions options)))))
 
 (defn ^ArangoCollection collection
   ([^ArangoDatabase db ^String coll-name]
-   (->result (.collection db coll-name))))
+   (.collection db coll-name)))
 
 (def get-collection collection)
 
 (defn ^ArangoCollection create-and-get-collection
   ([^ArangoDatabase db ^String coll-name]
    (do (.createCollection db coll-name)
-       (->result (.collection db coll-name))))
+       (.collection db coll-name)))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
    (do (.createCollection db coll-name (options/build CollectionCreateOptions options))
-       (->result (.collection db coll-name)))))
+       (.collection db coll-name))))
 
-(defn get-collections
-  [^ArangoDatabase db]
-  (->result (.getCollections db)))
+(defn ^java.util.Collection get-collections
+  ([^ArangoDatabase db] (.getCollections db))
+  ([^ArangoDatabase db ^CollectionsReadOptions options]
+   (.getCollections db (options/build CollectionsReadOptions options))))
 
 (defn get-collection-names
   "returns a vector of `string`"
@@ -93,10 +102,11 @@
   sequence of maps `{:name 'relationName' :from ['collA'...] :to [collB...]}`
   if the names in sources and targets do not exist on the database, then new collections
   will be created."
-  [^ArangoDatabase db graph-name edge-definitions]
-  (->result (.createGraph db graph-name
-                          (map #(if (map? %) (graph/edge-definition %) %)
-                               edge-definitions))))
+  [^ArangoDatabase db ^String name edge-definitions ^GraphCreateOptions options]
+  (from-entity (.createGraph db name
+                             (map #(if (map? %) (graph/edge-definition %) %)
+                                  edge-definitions)
+                             (options/build GraphCreateOptions options))))
 
 (defn ^ArangoGraph graph
   ([^ArangoDatabase db ^String graph-name]

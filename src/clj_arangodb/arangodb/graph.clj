@@ -1,20 +1,43 @@
 (ns clj-arangodb.arangodb.graph
   (:require
    [clj-arangodb.velocypack.core :as vpack]
-   [clj-arangodb.arangodb.utils :refer [maybe-vpack]]
-   [clj-arangodb.arangodb.conversions :refer [->result]]
+   [clj-arangodb.arangodb.adapter :refer [from-entity serialize-doc deserialize-doc]]
    [clj-arangodb.arangodb.options :as options])
-  (:import com.arangodb.entity.EdgeDefinition
-           com.arangodb.ArangoGraph
-           com.arangodb.ArangoEdgeCollection
-           com.arangodb.ArangoVertexCollection
-           com.arangodb.model.VertexCreateOptions
-           com.arangodb.model.EdgeCreateOptions
-           com.arangodb.velocypack.VPackSlice
-           com.arangodb.model.DocumentCreateOptions
-           com.arangodb.model.DocumentReadOptions
-           com.arangodb.model.DocumentReplaceOptions
-           com.arangodb.model.DocumentUpdateOptions))
+  (:import [com.arangodb.velocypack
+            VPackSlice]
+           [com.arangodb.entity
+            GraphEntity
+            VertexEntity
+            VertexUpdateEntity
+            EdgeUpdateEntity
+            EdgeEntity
+            EdgeDefinition]
+           [com.arangodb
+            ArangoGraph
+            ArangoVertexCollection
+            ArangoEdgeCollection]
+           [com.arangodb.model
+            VertexCreateOptions
+            VertexDeleteOptions
+            VertexReplaceOptions
+            VertexUpdateOptions
+            EdgeCreateOptions
+            EdgeDeleteOptions
+            EdgeReplaceOptions
+            EdgeUpdateOptions
+            DocumentCreateOptions
+            DocumentReadOptions
+            DocumentReplaceOptions
+            DocumentUpdateOptions]))
+
+(defn ^Boolean exists? [^ArangoGraph x]
+  (.exists x))
+
+(defn ^GraphEntity get-info [^ArangoGraph x]
+  (from-entity (.getInfo x)))
+
+(defn drop [^ArangoGraph x]
+  (.drop x))
 
 (defn make-multigraph [edge-collection-name edges]
   ;; an edge is of the from ["source" ["target_1" ... "target_n"]]
@@ -25,8 +48,7 @@
 
 ;; (map :name (:members (r/reflect conn)))
 
-(defn get-info [^ArangoGraph x]
-  (->result (.getInfo x)))
+
 
 (defn get-vertex-collections [^ArangoGraph graph]
   (->result (.getVertexCollections graph)))
@@ -53,32 +75,77 @@
       (.from (into-array from))
       (.to (into-array to))))
 
-(defn get-edge
-  ([^ArangoEdgeCollection coll key]
-   (get-edge coll key VPackSlice))
-  ([^ArangoEdgeCollection coll ^String key ^Class as]
-   (->result (.getEdge coll key as)))
-  ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (->result (.getEdge coll key as (options/build DocumentReadOptions options)))))
-
-(defn insert-edge
-  ([^ArangoEdgeCollection coll {:keys [_from _to] :as doc}]
-   (->result (.insertEdge coll (maybe-vpack doc))))
-  ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
-   (->result (.insertEdge coll (maybe-vpack doc)
-                          (options/build EdgeCreateOptions options)))))
+(defn ^VertexEntity insert-vertex
+  ([^ArangoVertexCollection coll doc]
+   (from-entity (.insertVertex coll (serialize-doc doc))))
+  ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
+   (from-entity (.insertVertex coll (serialize-doc doc)
+                               (options/build VertexCreateOptions options)))))
 
 (defn get-vertex
   ([^ArangoVertexCollection coll key]
    (get-vertex coll key VPackSlice))
   ([^ArangoVertexCollection coll ^String key ^Class as]
-   (->result (.getVertex coll ^String key ^Class as)))
+   (deserialize-doc (.getVertex coll key as)))
   ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (->result (.getVertex coll key as (options/build DocumentReadOptions options)))))
+   (deserialize-doc (.getVertex coll key as (options/build DocumentReadOptions options)))))
 
-(defn insert-vertex
-  ([^ArangoVertexCollection coll doc]
-   (->result (.insertVertex coll (maybe-vpack doc))))
-  ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
-   (->result (.insertVertex coll (maybe-vpack doc)
-                            (options/build VertexCreateOptions options)))))
+(defn ^VertexUpdateEntity replace-vertex
+  ([^ArangoVertexCollection coll ^String key ^Object doc]
+   (from-entity (.replaceVertex coll key (serialize-doc doc))))
+  ([^ArangoVertexCollection coll ^String key ^Object doc ^VertexUpdateOptions options]
+   (from-entity (.replaceVertex coll key (serialize-doc doc)
+                                (options/build VertexUpdateOptions options)))))
+
+(defn ^VertexUpdateEntity update-vertex
+  ([^ArangoVertexCollection coll ^String key ^Object doc]
+   (from-entity (.updateVertex coll key (serialize-doc doc))))
+  ([^ArangoVertexCollection coll ^String key ^Object doc ^VertexUpdateOptions options]
+   (from-entity (.updateVertex coll key (serialize-doc doc)
+                               (options/build VertexUpdateOptions options)))))
+
+(defn delete-vertex
+  ;; void
+  ([^ArangoVertexCollection coll ^String key ^Object doc]
+   (.deleteVertex coll key (serialize-doc doc)))
+  ([^ArangoVertexCollection coll ^String key ^Object doc ^VertexDeleteOptions options]
+   (.deleteVertex coll key (serialize-doc doc)
+                  (options/build VertexDeleteOptions options))))
+
+(defn ^EdgeEntity insert-edge
+  ([^ArangoEdgeCollection coll doc]
+   (from-entity (.insertEdge coll (serialize-doc doc))))
+  ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
+   (from-entity (.insertEdge coll (serialize-doc doc)
+                             (options/build EdgeCreateOptions options)))))
+
+(defn get-edge
+  ([^ArangoEdgeCollection coll key]
+   (get-edge coll key VPackSlice))
+  ([^ArangoEdgeCollection coll ^String key ^Class as]
+   (deserialize-doc (.getEdge coll key as)))
+  ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
+   (deserialize-doc (.getEdge coll key as (options/build DocumentReadOptions options)))))
+
+
+(defn ^EdgeUpdateEntity replace-edge
+  ([^ArangoEdgeCollection coll ^String key ^Object doc]
+   (from-entity (.replaceEdge coll key (serialize-doc doc))))
+  ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeUpdateOptions options]
+   (from-entity (.replaceEdge coll key (serialize-doc doc)
+                                (options/build EdgeUpdateOptions options)))))
+
+(defn ^EdgeUpdateEntity update-edge
+  ([^ArangoEdgeCollection coll ^String key ^Object doc]
+   (from-entity (.updateEdge coll key (serialize-doc doc))))
+  ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeUpdateOptions options]
+   (from-entity (.updateEdge coll key (serialize-doc doc)
+                               (options/build EdgeUpdateOptions options)))))
+
+(defn delete-edge
+  ;; void
+  ([^ArangoEdgeCollection coll ^String key ^Object doc]
+   (.deleteEdge coll key (serialize-doc doc)))
+  ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeDeleteOptions options]
+   (.deleteEdge coll key (serialize-doc doc)
+                (options/build EdgeDeleteOptions options))))

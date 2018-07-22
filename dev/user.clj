@@ -6,7 +6,7 @@
             [clj-arangodb.arangodb.collections :as c]
             [clj-arangodb.arangodb.graph :as g]
             [clj-arangodb.velocypack.core :as v]
-            [clj-arangodb.arangodb.conversions :refer [->map]])
+            [clj-arangodb.arangodb.adapter :as adapter])
   (:import [com.arangodb
             ArangoCollection]
            [com.arangodb.velocypack
@@ -15,13 +15,13 @@
             BaseDocument]))
 
 
-(defonce conn (atom (arango/connect {:user "test"})))
+;; (defonce conn (atom (arango/connect {:user "test"})))
 
 ;; (def db-name (str (gensym)))
-(defonce db (atom (arango/create-and-get-database @conn db-name)))
+;; (defonce db (atom (arango/create-and-get-database @conn db-name)))
 
 ;; (def coll-name (str (gensym)))
-(defonce coll (atom (d/create-and-get-collection @db coll-name)))
+;; (defonce coll (atom (d/create-and-get-collection @db coll-name)))
 
 
 ;; (defn lisp-ify [cammelCase]
