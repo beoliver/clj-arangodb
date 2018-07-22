@@ -1,12 +1,15 @@
 (ns clj-arangodb.arangodb.conversions
+  (:require [clj-arangodb.velocypack.core :as vpack])
   (:import [clojure.lang
             PersistentArrayMap
             PersistentHashMap]
+           com.arangodb.velocypack.VPackSlice
            [com.arangodb.entity
             CollectionEntity
             GraphEntity
             EdgeDefinition
             DocumentCreateEntity
+            MultiDocumentEntity
             DocumentUpdateEntity
             DocumentDeleteEntity]))
 
@@ -23,19 +26,30 @@
 (defmethod ->map :default
   [o] (bean-no-class o))
 
-;;; make sure that `->map` is idempotent wrt clojure maps
+;;; make sure that `->map` is idempotent wrt clojure maps and strings
 
 (defmethod ->map PersistentArrayMap
   [o] o)
 (defmethod ->map PersistentHashMap
   [o] o)
+(defmethod ->map String
+  [o] o)
+
+(defmethod ->map VPackSlice
+  [o]
+  (vpack/unpack o keyword))
+
+(defmethod ->map MultiDocumentEntity
+  [o] (-> o
+          bean
+          (update-many [:documents :errors :documentsAndErrors] #(map ->map %))))
 
 (defmethod ->map CollectionEntity
   [o] (-> o
-          bean-no-class
+          bean
           (update-many [:status :type] str)))
 
 (defmethod ->map GraphEntity
   [o] (-> o
-          bean-no-class
+          bean
           (update :edgeDefinitions #(into [] (map ->map %)))))

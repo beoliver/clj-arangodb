@@ -1,20 +1,62 @@
 (ns clj-arangodb.arangodb.utils
-  (:require [clj-arangodb.velocypack.core :as vpack])
+  (:require [clojure.reflect :as r]
+            [clj-arangodb.velocypack.core :as vpack])
   (:import com.arangodb.Protocol))
-
-(defn keyword->Protocol
-  "returns the interal protocol representation.
-  `k` should be one of `:vst`, `:http-vpack`, `:http-json`"
-  [k]
-  (get {:vst Protocol/VST
-        :http-vpack Protocol/HTTP_VPACK
-        :http-json Protocol/HTTP_JSON} k))
-
-(defn MultiDocumentEntity->map [o]
-  (-> (bean o)
-      (update :documents #(map bean %))
-      (update :errors #(map bean %))
-      (update :documentsAndErrors #(map bean %))))
 
 (defn maybe-vpack [doc]
   (if (map? doc) (vpack/pack doc) doc))
+
+
+
+;; magic function creation!
+
+(defn lisp-ify [cammelCase]
+  (-> cammelCase
+      str
+      (clojure.string/replace #"(.)([A-Z][a-z]+)" "$1-$2")
+      (clojure.string/replace #"([a-z0-9])([A-Z])" "$1-$2")
+      (clojure.string/lower-case)
+      symbol))
+
+(defn class-as-param-name [class-name]
+  (-> class-name
+      str
+      (clojure.string/split #"\.")
+      last
+      lisp-ify))
+
+(defn lisp-ify [cammelCase]
+  (-> cammelCase
+      str
+      (clojure.string/replace #"(.)([A-Z][a-z]+)" "$1-$2")
+      (clojure.string/replace #"([a-z0-9])([A-Z])" "$1-$2")
+      (clojure.string/lower-case)
+      symbol))
+
+(defn wrap-method-member [{:keys [name
+                                  return-type
+                                  declaring-class
+                                  parameter-types
+                                  exception-types
+                                  flags] :as member}]
+  (let [dot-name (symbol (str "." name))
+        o# (class-as-param-name declaring-class)
+        arg-types-and-names (into [o#] (map class-as-param-name parameter-types))]
+    `(~(into [o#] (map class-as-param-name parameter-types))
+      ~(cons (vary-meta dot-name assoc :tag declaring-class)
+             arg-types-and-names))))
+
+(defn generate-multi-arity-decls [[name implementations]]
+  `(defn ~(lisp-ify name)
+     ~@(map wrap-method-member implementations)))
+
+(defn wrap-object-publics [o]
+  (as-> (r/reflect o) $
+    (:members $)
+    (filter (fn [x] (some #{:public} (:flags x))) $)
+    (group-by :name $)
+    (map generate-multi-arity-decls $)))
+
+(defn load-object-publics [o]
+  (doseq [o (wrap-object-publics o)]
+    (eval o)))

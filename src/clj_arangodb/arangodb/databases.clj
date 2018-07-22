@@ -2,7 +2,8 @@
   (:require [clojure.set :as set]
             [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.graph :as graph]
-            [clj-arangodb.arangodb.conversions :as conv]
+            [clj-arangodb.arangodb.utils :refer [maybe-vpack]]
+            [clj-arangodb.arangodb.conversions :refer [->map]]
             [clj-arangodb.arangodb.options :as options]
             [clojure.reflect :as r])
   (:import
@@ -61,12 +62,8 @@
        (.collection db coll-name))))
 
 (defn get-collections
-  "when called with with a `post-fn` will map over the collection of
-  `CollectionEntity`. By default these objects are converted into
-  clojure maps. If you want the actual Objects, just pass `identity` as
-  the post-fn"
-  ([^ArangoDatabase db] (get-collections db conv/->map))
-  ([^ArangoDatabase db post-fn] (vec (map post-fn (.getCollections db)))))
+  [^ArangoDatabase db]
+  (->map (.getCollections db)))
 
 (defn get-collection-names
   "returns a vector of `string`"
@@ -81,12 +78,8 @@
               nil)) nil (get-collections db identity)))
 
 (defn get-graphs
-  "when called with with a `post-fn` will map over the collection of
-  `GraphEntity`. By default these objects are converted into
-  clojure maps. If you want the actual Objects, just pass `identity` as
-  the post-fn"
-  ([^ArangoDatabase db] (get-graphs db conv/->map))
-  ([^ArangoDatabase db post-fn] (vec (map post-fn (.getGraphs db)))))
+  [^ArangoDatabase db]
+  (->map (.getGraphs db)))
 
 (defn collection-exists? [^ArangoDatabase db collection-name]
   (some #(= collection-name (.getName %)) (get-collections db identity)))
@@ -100,9 +93,9 @@
   if the names in sources and targets do not exist on the database, then new collections
   will be created."
   [^ArangoDatabase db graph-name edge-definitions]
-  (.createGraph db graph-name
-                (map #(if (map? %) (graph/edge-definition %) %)
-                     edge-definitions)))
+  (->map (.createGraph db graph-name
+                       (map #(if (map? %) (graph/edge-definition %) %)
+                            edge-definitions))))
 
 (defn ^ArangoGraph graph
   ([^ArangoDatabase db ^String graph-name]
