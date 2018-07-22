@@ -113,7 +113,7 @@ user> (c/get-document coll "298604")
 But... as we like keywords, and as we can have keywords, we might as well use them!
 ```clojure
 (defmethod adapter/deserialize-doc VPackSlice [o]
-  (v/unpack o keyword))
+  (vpack/unpack o keyword))
 
 user> (c/get-document coll "298604")
 {:_id "helloColl/298604", :_key "298604", :_rev "_XJ8k7mu--_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
@@ -126,7 +126,7 @@ user> (c/get-document coll "298604" BaseDocument)
 ```
 If you want to get them back as beans you might want something like this.
 ```clojure
-(defmethod ad/deserialize-doc BaseDocument [o]
+(defmethod adapter/deserialize-doc BaseDocument [o]
   (-> o bean (dissoc :class)))
 
 user> (c/get-document coll "298604" BaseDocument)
