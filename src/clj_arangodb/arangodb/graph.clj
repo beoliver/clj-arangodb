@@ -2,7 +2,7 @@
   (:require
    [clj-arangodb.velocypack.core :as vpack]
    [clj-arangodb.arangodb.utils :refer [maybe-vpack]]
-   [clj-arangodb.arangodb.conversions :refer [->map]]
+   [clj-arangodb.arangodb.conversions :refer [->result]]
    [clj-arangodb.arangodb.options :as options])
   (:import com.arangodb.entity.EdgeDefinition
            com.arangodb.ArangoGraph
@@ -25,25 +25,26 @@
 
 ;; (map :name (:members (r/reflect conn)))
 
-(defn get-info [^ArangoGraph x] (->map (.getInfo x)))
+(defn get-info [^ArangoGraph x]
+  (->result (.getInfo x)))
 
 (defn get-vertex-collections [^ArangoGraph graph]
-  (->map (.getVertexCollections graph)))
+  (->result (.getVertexCollections graph)))
 
 (defn get-edge-definitions [^ArangoGraph graph]
-  (->map (.getEdgeDefinitions graph)))
+  (->result (.getEdgeDefinitions graph)))
 
 (defn edge-collection "get the actual collection" [^ArangoGraph graph coll-name]
-  (.edgeCollection graph coll-name))
+  (->result (.edgeCollection graph coll-name)))
 
 (defn vertex-collection "get the actual collection" [^ArangoGraph graph coll-name]
-  (.vertexCollection graph coll-name))
+  (->result (.vertexCollection graph coll-name)))
 
 (defn add-vertex-collection [^ArangoGraph graph ^String collection-name]
   ;; returns ArangoDBException Response: 400, Error: 1938 - collection used in orphans if
   ;; you try adding the collection twice
   ;; arangoDB.db("myDatabase").graph("myGraph").drop();
-  (->map (.addVertexCollection graph collection-name)))
+  (->result (.addVertexCollection graph collection-name)))
 
 (defn edge-definition
   [{:keys [name from to] :as edge-definition}]
@@ -56,28 +57,28 @@
   ([^ArangoEdgeCollection coll key]
    (get-edge coll key VPackSlice))
   ([^ArangoEdgeCollection coll ^String key ^Class as]
-   (->map (.getEdge coll key as)))
+   (->result (.getEdge coll key as)))
   ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (->map (.getEdge coll key as (options/build DocumentReadOptions options)))))
+   (->result (.getEdge coll key as (options/build DocumentReadOptions options)))))
 
 (defn insert-edge
   ([^ArangoEdgeCollection coll {:keys [_from _to] :as doc}]
-   (->map (.insertEdge coll (maybe-vpack doc))))
+   (->result (.insertEdge coll (maybe-vpack doc))))
   ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
-   (->map (.insertEdge coll (maybe-vpack doc)
-                       (options/build EdgeCreateOptions options)))))
+   (->result (.insertEdge coll (maybe-vpack doc)
+                          (options/build EdgeCreateOptions options)))))
 
 (defn get-vertex
   ([^ArangoVertexCollection coll key]
    (get-vertex coll key VPackSlice))
   ([^ArangoVertexCollection coll ^String key ^Class as]
-   (->map (.getVertex coll ^String key ^Class as)))
+   (->result (.getVertex coll ^String key ^Class as)))
   ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (->map (.getVertex coll key as (options/build DocumentReadOptions options)))))
+   (->result (.getVertex coll key as (options/build DocumentReadOptions options)))))
 
 (defn insert-vertex
   ([^ArangoVertexCollection coll doc]
-   (->map (.insertVertex coll (maybe-vpack doc))))
+   (->result (.insertVertex coll (maybe-vpack doc))))
   ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
-   (->map (.insertVertex coll (maybe-vpack doc)
-                         (options/build VertexCreateOptions options)))))
+   (->result (.insertVertex coll (maybe-vpack doc)
+                            (options/build VertexCreateOptions options)))))

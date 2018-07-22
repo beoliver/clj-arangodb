@@ -1,7 +1,7 @@
 (ns clj-arangodb.arangodb.collections
   (:require [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.utils :as utils]
-            [clj-arangodb.arangodb.conversions :refer [->map]]
+            [clj-arangodb.arangodb.conversions :refer [->result]]
             [clj-arangodb.arangodb.options :as options])
   (:import
    com.arangodb.ArangoCollection
@@ -30,63 +30,63 @@
   ([^ArangoCollection coll ^String key]
    (get-document coll key VPackSlice))
   ([^ArangoCollection coll ^String key ^Class as]
-   (->map (.getDocument coll key as)))
+   (->result (.getDocument coll key as)))
   ([^ArangoCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (->map (.getDocument coll key as (options/build DocumentReadOptions options)))))
+   (->result (.getDocument coll key as (options/build DocumentReadOptions options)))))
 
 (defn insert-document
   ([^ArangoCollection coll ^Object doc]
-   (->map (.insertDocument coll (maybe-vpack doc))))
+   (->result (.insertDocument coll (maybe-vpack doc))))
   ([^ArangoCollection coll ^Object doc ^DocumentCreateOptions options]
-   (->map (.insertDocument coll (maybe-vpack doc)
+   (->result (.insertDocument coll (maybe-vpack doc)
                            (options/build DocumentCreateOptions options)))))
 
 (defn insert-documents
   ([^ArangoCollection coll docs]
-   (->map (.insertDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
+   (->result (.insertDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
   ([^ArangoCollection coll docs ^DocumentCreateOptions options]
-   (->map (.insertDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
+   (->result (.insertDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
                             (options/build DocumentCreateOptions options)))))
 
 (defn update-document
   ([^ArangoCollection coll ^String key ^Object doc]
-   (->map (.updateDocument coll key (maybe-vpack doc))))
+   (->result (.updateDocument coll key (maybe-vpack doc))))
   ([^ArangoCollection coll ^String key doc ^DocumentUpdateOptions options]
-   (->map (.updateDocument coll key (maybe-vpack doc)
-                           (options/build DocumentUpdateOptions options)))))
+   (->result (.updateDocument coll key (maybe-vpack doc)
+                              (options/build DocumentUpdateOptions options)))))
 
 (defn update-documents
   ([^ArangoCollection coll docs]
-   (->map (.updateDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
+   (->result (.updateDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
   ([^ArangoCollection coll docs ^DocumentUpdateOptions options]
-   (->map (.updateDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
-                            (options/build DocumentUpdateOptions options)))))
+   (->result (.updateDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
+                               (options/build DocumentUpdateOptions options)))))
 
 (defn replace-document
   ([^ArangoCollection coll ^String key ^Object doc]
-   (->map (.replaceDocument coll key doc)))
+   (->result (.replaceDocument coll key doc)))
   ([^ArangoCollection coll ^String key ^Object doc ^DocumentReplaceOptions options]
-   (->map (.replaceDocument coll key doc (options/build DocumentReplaceOptions options)))))
+   (->result (.replaceDocument coll key doc (options/build DocumentReplaceOptions options)))))
 
 (defn replace-documents
   ([^ArangoCollection coll docs]
-   (->map (.replaceDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
+   (->result (.replaceDocuments coll (java.util.ArrayList. (map maybe-vpack docs)))))
   ([^ArangoCollection coll docs ^DocumentReplaceOptions options]
-   (->map (.replaceDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
-                             (options/build DocumentReplaceOptions options)))))
+   (->result (.replaceDocuments coll (java.util.ArrayList. (map maybe-vpack docs))
+                                (options/build DocumentReplaceOptions options)))))
 
 (defn delete-document
   ([^ArangoCollection coll ^String key]
-   (->map (.deleteDocument coll key)))
+   (->result (.deleteDocument coll key)))
   ([^ArangoCollection coll ^String key ^Class as ^DocumentDeleteOptions options]
-   (->map (.deleteDocument coll key as (options/build DocumentDeleteOptions options)))))
+   (->result (.deleteDocument coll key as (options/build DocumentDeleteOptions options)))))
 
 (defn delete-documents
   ([^ArangoCollection coll keys]
-   (->map (.deleteDocuments coll (java.util.ArrayList. keys))))
+   (->result (.deleteDocuments coll (java.util.ArrayList. keys))))
   ([^ArangoCollection coll keys ^Class as ^DocumentDeleteOptions options]
-   (->map (.deleteDocuments coll (java.util.ArrayList. keys) as
-                            (options/build DocumentDeleteOptions options)))))
+   (->result (.deleteDocuments coll (java.util.ArrayList. keys) as
+                               (options/build DocumentDeleteOptions options)))))
 
 (defn truncate [^ArangoCollection coll]
   (.truncate coll))

@@ -21,35 +21,35 @@
 (defn update-many [m keys f]
   (reduce (fn [m k] (update m k f)) m keys))
 
-(defmulti ->map class)
+(defmulti ->result class)
 
-(defmethod ->map :default
-  [o] (bean-no-class o))
-
-;;; make sure that `->map` is idempotent wrt clojure maps and strings
-
-(defmethod ->map PersistentArrayMap
-  [o] o)
-(defmethod ->map PersistentHashMap
-  [o] o)
-(defmethod ->map String
+(defmethod ->result :default
   [o] o)
 
-(defmethod ->map VPackSlice
+;;; make sure that `->result` is idempotent wrt clojure maps and strings
+
+(defmethod ->result PersistentArrayMap
+  [o] o)
+(defmethod ->result PersistentHashMap
+  [o] o)
+(defmethod ->result String
+  [o] o)
+
+(defmethod ->result VPackSlice
   [o]
   (vpack/unpack o keyword))
 
-(defmethod ->map MultiDocumentEntity
+(defmethod ->result MultiDocumentEntity
   [o] (-> o
           bean
-          (update-many [:documents :errors :documentsAndErrors] #(map ->map %))))
+          (update-many [:documents :errors :documentsAndErrors] #(map ->result %))))
 
-(defmethod ->map CollectionEntity
+(defmethod ->result CollectionEntity
   [o] (-> o
           bean
           (update-many [:status :type] str)))
 
-(defmethod ->map GraphEntity
+(defmethod ->result GraphEntity
   [o] (-> o
           bean
-          (update :edgeDefinitions #(into [] (map ->map %)))))
+          (update :edgeDefinitions #(into [] (map ->result %)))))
