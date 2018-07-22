@@ -9,7 +9,8 @@ Much like monger, the java implementation is still visible.
 functions are lispy versions of their java counterparts.
 options are passed as map - with keywords written in `:cammelCase` - for example `{:someOption "a string" :anotherOption ["192.168.1.1", 8888]}`
 For more information about what constitutes a valid option for a method you must consult the java api documentation.
-As an aside, I considered adding destructuring to give the user nice feedback - but there are just to MANY of them!
+As an aside, I considered adding destructuring to give the user nice feedback - but there are just to many of them! If you are interested -
+have a look at the options namespace and the functions `fn-builder` and `build` - we just take the map and create method calls from the keys.
 
 This wrapper exposes most of the available methods -
 If we look at how the java code is used, in this example a new connecton is being made to a server.
@@ -115,5 +116,20 @@ But... as we like keywords, and as we can have keywords, we might as well use th
 user> (c/get-document coll "298604")
 {:_id "helloColl/298604", :_key "298604", :_rev "_XJ8k7mu--_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
 ```
+There is one other way of getting information back, and that is to use the `com.arangodb.entity.BaseDocument` class.
+Assuming that we have imported it
+```clojure
+user> (c/get-document coll "298604" BaseDocument)
+#object[com.arangodb.entity.BaseDocument 0x5e6fd7fb "BaseDocument [documentRevision=_XJ8k7mu--_, documentHandle=helloColl/298604, documentKey=298604, properties={data={a={b=[1, 2, 3], c=true}}, name=nested}]"]
+```
+If you want to get them back as beans you might want something like this.
+```clojure
+(defmethod ad/deserialize-doc BaseDocument [o]
+  (-> o bean (dissoc :class)))
 
-Have a play - and remeber the multimethods!
+user> (c/get-document coll "298604" BaseDocument)
+{:id "helloColl/298604", :key "298604", :properties {"data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}, :revision "_XJ8k7mu--_"}
+```
+If you wanted to keywordize then you would need to use a lib like clojure walk or write your own function.
+
+Have a play - and remeber the multimethods! - if you don't like the data you are getting, change it...
