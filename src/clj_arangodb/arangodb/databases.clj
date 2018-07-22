@@ -3,6 +3,7 @@
             [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.graph :as graph]
             [clj-arangodb.arangodb.conversions :as conv]
+            [clj-arangodb.arangodb.options :as options]
             [clojure.reflect :as r])
   (:import
    com.arangodb.velocypack.VPackSlice
@@ -12,28 +13,17 @@
    com.arangodb.ArangoDatabase
    com.arangodb.ArangoGraph
    com.arangodb.ArangoCollection
-   com.arangodb.model.DocumentReadOptions
    com.arangodb.entity.CollectionEntity
    com.arangodb.entity.GraphEntity
    com.arangodb.ArangoDBException
    com.arangodb.velocypack.VPackSlice
-   com.arangodb.model.CollectionCreateOptions
-   com.arangodb.model.AqlQueryOptions)
+   [com.arangodb.model
+    DocumentReadOptions
+    CollectionCreateOptions
+    AqlQueryOptions])
   (:refer-clojure :exclude [drop]))
 
 (defn drop [^ArangoDatabase db] (.drop db))
-
-(defn get-map
-  ([^ArangoDatabase db id]
-   (vpack/unpack (.getDocument db id VPackSlice) keyword))
-  ([^ArangoDatabase db id key-fn]
-   (vpack/unpack (.getDocument db id VPackSlice) key-fn)))
-
-(defn get-document-as-map
-  ([^ArangoDatabase db id]
-   (vpack/unpack (.getDocument db id VPackSlice) keyword))
-  ([^ArangoCollection db id key-fn]
-   (vpack/unpack (.getDocument db id VPackSlice) key-fn)))
 
 (defn get-document
   "
@@ -42,6 +32,8 @@
   `VpackSlice` will return a arangodb velocypack slice
   `BaseDocument` will return a java object
   "
+  ([^ArangoDatabase db ^String id]
+   (vpack/unpack (.getDocument db id VPackSlice) keyword))
   ([^ArangoDatabase db ^String id ^Class as]
    (.getDocument db id as))
   ([^ArangoDatabase db ^String id ^Class as ^DocumentReadOptions options]
@@ -52,7 +44,7 @@
   ([^ArangoDatabase db ^String coll-name]
    (.createCollection db coll-name))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
-   (.createCollection db coll-name options)))
+   (.createCollection db coll-name (options/build CollectionCreateOptions options))))
 
 (defn ^ArangoCollection collection
   ([^ArangoDatabase db ^String coll-name]
@@ -65,7 +57,7 @@
    (do (.createCollection db coll-name)
        (.collection db coll-name)))
   ([^ArangoDatabase db ^String coll-name ^CollectionCreateOptions options]
-   (do (.createCollection db coll-name options)
+   (do (.createCollection db coll-name (options/build CollectionCreateOptions options))
        (.collection db coll-name))))
 
 (defn get-collections
@@ -121,4 +113,4 @@
   ([^ArangoDatabase db ^String query-str]
    (query db query-str nil nil VPackSlice))
   ([^ArangoDatabase db ^String query-str bindvars ^AqlQueryOptions options ^Class as]
-   (.query db query-str bindvars options as)))
+   (.query db query-str bindvars (options/build AqlQueryOptions options) as)))

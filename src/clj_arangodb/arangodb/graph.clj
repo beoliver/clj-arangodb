@@ -1,6 +1,7 @@
 (ns clj-arangodb.arangodb.graph
   (:require
    [clj-arangodb.velocypack.core :as v]
+   [clj-arangodb.arangodb.options :as options]
    [clojure.set :as set]
    [clojure.reflect :as r])
   (:import com.arangodb.entity.EdgeDefinition
@@ -53,17 +54,16 @@
       (.from (into-array from))
       (.to (into-array to))))
 
-
 (defn get-edge
   ([^ArangoEdgeCollection coll ^String key ^Class as] (.getEdge coll key as))
   ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
-   (.getEdge coll key as options)))
+   (.getEdge coll key as (options/build DocumentReadOptions options))))
 
 (defn insert-edge
   ([^ArangoEdgeCollection coll {:keys [_from _to] :as doc}]
    (.insertEdge coll doc))
   ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
-   (.insertEdge coll doc options)))
+   (.insertEdge coll doc (options/build EdgeCreateOptions options))))
 
 (defn get-vertex
   [^ArangoVertexCollection coll key ^Class as]
@@ -73,4 +73,4 @@
   ([^ArangoVertexCollection coll doc]
    (.insertVertex coll doc))
   ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
-   (.insertVertex coll doc options)))
+   (.insertVertex coll doc (options/build VertexCreateOptions options))))

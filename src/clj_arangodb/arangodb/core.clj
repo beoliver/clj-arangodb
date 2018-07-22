@@ -1,14 +1,13 @@
 (ns clj-arangodb.arangodb.core
-  ""
-  (:require
-   [clojure.set :as set]
-   [clj-arangodb.arangodb.options :as options]
-   [clj-arangodb.arangodb.conversions :as conv]
-   [clj-arangodb.arangodb.utils :as utils])
-  (:import
-   com.arangodb.ArangoDB
-   com.arangodb.ArangoDatabase
-   com.arangodb.entity.BaseDocument))
+  (:require [clojure.set :as set]
+            [clj-arangodb.arangodb.options :as options]
+            [clj-arangodb.arangodb.conversions :as conv]
+            [clj-arangodb.arangodb.utils :as utils])
+  (:import [com.arangodb
+            ArangoDB$Builder
+            ArangoDB
+            ArangoDatabase]
+           com.arangodb.entity.BaseDocument))
 
 (defn ^ArangoDB connect
   "
@@ -24,7 +23,7 @@
   :max-connections Integer | Long
   "
   ([] (connect {}))
-  ([options] (.build (options/map->ArangoDB$Builder options))))
+  ([options] (.build (options/build ArangoDB$Builder options))))
 
 (defn ^Boolean create-database
   "returns `true` on success else `ArangoDBException`"
