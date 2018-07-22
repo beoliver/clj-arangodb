@@ -1,94 +1,100 @@
 (ns user
-  (:require [clj-arangodb.arangodb.core :as arango]
+  (:require [clojure.reflect :as r]
+            [clj-arangodb.arangodb.utils :as utils]
+            [clj-arangodb.arangodb.core :as ar]
+            [clj-arangodb.arangodb.adapter :as ad]
             [clj-arangodb.arangodb.databases :as d]
             [clj-arangodb.arangodb.collections :as c]
             [clj-arangodb.arangodb.graph :as g]
-            [clj-arangodb.velocypack.core :as v]))
+            [clj-arangodb.velocypack.core :as v]
+            [clj-arangodb.arangodb.adapter :as adapter])
+  (:import [com.arangodb
+            ArangoCollection]
+           [com.arangodb.velocypack
+            VPackSlice]
+           [com.arangodb.entity
+            DocumentCreateEntity
+            BaseDocument]))
 
 
-(defn create-the-simpsons [db]
-  (when-not (d/graph-exists? db "theSimpsonsGraph")
-    (d/create-graph db
-                    "theSimpsonsGrpah"
-                    ;; define the edges (this creates new edge and vertex collections)
-                    [{:name "siblings" :from ["characters"] :to ["characters"]}
-                     {:name "parents" :from ["characters"] :to ["characters"]}]))
-  (let [graph (d/graph db "theSimpsonsGrpah")]
-    {:characters (g/vertex-collection graph "characters")
-     :siblings (g/edge-collection graph "siblings")
-     :parents (g/edge-collection graph "parents")}))
+;; (def conn (ar/connect {:user "test"}))
+;; (def db (ar/create-and-get-database conn "myDB"))
+;; (def coll (d/create-and-get-collection db "myColl"))
 
-(defn example []
-  (let [conn (arango/connect {:user "test"})
-        db (do (when-not (arango/database? conn "testDB")
-                 (arango/create-database conn "testDB"))
-               (arango/db conn "testDB"))
-        {:keys [characters siblings parants] :as collections} (create-the-simpsons db)]
-    ;; we now need to create some data to put into the database
-    (let [simpsons (into {} (map (fn [character]
-                                   (let [result (c/insert-vertex characters character)]
-                                     (clojure.pprint/pprint result)
-                                     [(:name character) (merge character (select-keys result [:id :key]))]))
-                                 [{:name "Homer"  :age 38}
-                                  {:name "Marge"  :age 36}
-                                  {:name "Bart"   :age 10}
-                                  {:name "Lisa"   :age 8}
-                                  {:name "Maggie" :age 2}]))
-          siblings ["Bart" "Lisa" "Maggie"]]
-      ;; we now have a map keyed by the names of the characters
-      simpsons
+;; (def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
 
-      )
+;; (defmethod ad/serialize-doc clojure.lang.PersistentArrayMap [o]
+;;   (v/pack o))
 
-    )
-  )
+;; (defmethod ad/deserialize-doc BaseDocument [o]
+;;   (-> o bean (dissoc :class)))
+
+;; (defonce conn (atom (arango/connect {:user "test"})))
+
+;; (def db-name (str (gensym)))
+;; (defonce db (atom (arango/create-and-get-database @conn db-name)))
+
+;; (def coll-name (str (gensym)))
+;; (defonce coll (atom (d/create-and-get-collection @db coll-name)))
 
 
-;; (defn example []
-;;   (let [conn (arango/connect {:user "dev" :password "123"})]
-;;     (arango/create-database conn "userDB")
-;;     (let [db (arango/db conn "userDB")
-;;     	  graph (do (d/create-graph "theSimpsonsGrpah" [{:name "Siblings" :from ["Characters"] :to ["Characters"]}
-;; 	  		           		       	{:name "Parents" :from ["Characters"] :to ["Characters"]}])
-;; 	 	    (d/graph "theSimpsonsGrpah"))
-;;           characters [{:name "Homer"  :age 38}
-;; 	  	      {:name "Marge"  :age 36}
-;; 		      {:name "Bart"   :age 10}
-;; 		      {:name "Lisa"   :age 8}
-;; 		      {:name "Maggie" :age 2}]
-;; 	  characters (g/vertex-collection graph "Characters")
-;; 	  siblings   (g/edge-collection graph "Sibling")
-;; 	  parents    (g/edge-collection graph "Parent")
+;; (defn lisp-ify [cammelCase]
+;;   (-> cammelCase
+;;       str
+;;       (clojure.string/replace #"(.)([A-Z][a-z]+)" "$1-$2")
+;;       (clojure.string/replace #"([a-z0-9])([A-Z])" "$1-$2")
+;;       (clojure.string/lower-case)
+;;       symbol))
 
-;;           ;; we insert the docs and merge the return keys - giving us ids
-;;           ;; we will use the first names as keys into the map
-;;           simpsons-map (into {} (map (fn [m] [(:name m) m])
-;;                                      (map merge
-;;                                           the-simpsons
-;;                                           (c/insert-docs coll
-;;                                                          (map v/pack the-simpsons)))))
-;;           ;; lets get the ids for all the characters
-;;           bart (get-in simpsons-map ["Bart" :_id])
-;;           lisa (get-in simpsons-map ["Lisa" :_id])
-;;           maggie (get-in simpsons-map ["Maggie" :_id])
-;;           homer (get-in simpsons-map ["Homer" :_id])
-;;           marge (get-in simpsons-map ["Marge" :_id])
-;;           ;; next we want to think about the relations that we want to capture
-;;           ;; create two edge relations, each r is a is a new or existing edge collection
-;;           ;; as an exaple we will create an edge collection called "Sibling" now.
-;;           sibling-coll (d/create-and-get-collection db "Sibling" {:type :edge})]
+;; (defn class-as-param-name [class-name]
+;;   (-> class-name
+;;       str
+;;       (clojure.string/split #"\.")
+;;       last
+;;       lisp-ify))
 
-;;       (d/create-graph db "SimpsonGraph" [{:name "Sibling" :from ["Simpsons"] :to ["Simpsons"]}
-;;                                          {:name "Parent" :from ["Simpsons"] :to ["Simpsons"]}])
+;; (defn inspect [o]
+;;   (map :name (:members (r/reflect o))))
 
-;;       (c/insert-docs sibling-coll (map v/pack [{:_from bart :_to lisa}
-;;                                                {:_from lisa :_to bart}
-;;                                                {:_from bart :_to maggie}
-;;                                                {:_from maggie :_to bart}
-;;                                                {:_from lisa :_to maggie}
-;;                                                {:_from maggie :_to lisa}]))
 
-;;       (-> (d/get-collection db "Parent")
-;;           (c/insert-docs (flatten (for [parent [homer marge]]
-;;                                     (for [child [bart lisa maggie]]
-;;                                       (v/pack {:_from parent :_to child})))))))))
+;; (defn wrap-methods [{:keys [name
+;;                             return-type
+;;                             declaring-class
+;;                             parameter-types
+;;                             exception-types
+;;                             flags] :as member}]
+;;   (let [dot-name (symbol (str "." name))
+;;         o# (class-as-param-name declaring-class)
+;;         arg-types-and-names (into [o#] (map class-as-param-name parameter-types))]
+;;     `(defn ^{:tag ~return-type} ~(lisp-ify name)
+;;        ~(into [o#] (map class-as-param-name parameter-types))
+;;        ~(cons (vary-meta dot-name assoc :tag declaring-class)
+;;               arg-types-and-names))))
+
+;; (defn wrap-class [o]
+;;   (map wrap-methods (:members (r/reflect o))))
+
+
+;; (defn wrap-method-member [{:keys [name
+;;                                   return-type
+;;                                   declaring-class
+;;                                   parameter-types
+;;                                   exception-types
+;;                                   flags] :as member}]
+;;   (let [dot-name (symbol (str "." name))
+;;         o# (class-as-param-name declaring-class)
+;;         arg-types-and-names (into [o#] (map class-as-param-name parameter-types))]
+;;     `(~(into [o#] (map class-as-param-name parameter-types))
+;;       ~(cons (vary-meta dot-name assoc :tag declaring-class)
+;;              arg-types-and-names))))
+
+;; (defn generate-multi-arity-decls [[name implementations]]
+;;   `(defn ~(lisp-ify name)
+;;      ~@(map wrap-method-member implementations)))
+
+;; (defn wrap-object-publics [o]
+;;   (as-> (r/reflect o) $
+;;     (:members $)
+;;     (filter (fn [x] (some #{:public} (:flags x))) $)
+;;     (group-by :name $)
+;;     (map generate-multi-arity-decls $)))
