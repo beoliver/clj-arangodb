@@ -25,10 +25,9 @@
 
 ;; (defmethod ad/serialize-doc clojure.lang.PersistentArrayMap [o]
 ;;   (v/pack o))
-;; (defmethod ad/deserialize-doc VPackSlice [o]
-;;   (v/unpack o keyword))
 
-
+;; (defmethod ad/deserialize-doc BaseDocument [o]
+;;   (-> o bean (dissoc :class)))
 
 ;; (defonce conn (atom (arango/connect {:user "test"})))
 
