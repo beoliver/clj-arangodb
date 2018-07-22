@@ -1,5 +1,7 @@
 # clj-arangodb
 
+[![Clojars Project](https://img.shields.io/clojars/v/beoliver/clj-arangodb.svg)](https://clojars.org/beoliver/clj-arangodb)
+
 Arangodb is a multi-modal database.
 
 The maintainers of arangodb provide a java driver for communicating with an arangodb server.
