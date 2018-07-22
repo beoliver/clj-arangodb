@@ -31,11 +31,11 @@ the namespace `clj-arangodb.arangodb.adapter` currently contains 6 multimethods 
 ```clojure
 (defmulti serialize-doc class)
 (defmulti deserialize-doc class)
-(defmulti from-entity class)
+(defmulti as-entity class)
 
 (defmethod serialize-doc :default [o] o)
 (defmethod deserialize-doc :default [o] o)
-(defmethod from-entity :default [o] (bean o))
+(defmethod as-entity :default [o] (bean o))
 ```
 On top of that the is 1 dynamic var `*default-doc-class*` that is bound to the class `com.arangodb.velocypack.VPackSlice`
 
@@ -83,7 +83,7 @@ user> (def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
 user> res
 {:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/298178", :key "298178", :new nil, :old nil, :rev "_XJ8g7Yi--_"}
 ```
-Well look at that! By default calls that return a `Entity` of some kind are wrapped with `adapter/from-entity`. by default this
+Well look at that! By default calls that return a `Entity` of some kind are wrapped with `adapter/as-entity`. by default this
 calls `bean` on the object - `Entity` results are only data - ie they are not handles.
 
 Lets add another

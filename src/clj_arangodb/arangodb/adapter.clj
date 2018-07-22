@@ -16,15 +16,15 @@
 (defmethod serialize-doc :default [o] o)
 (defmethod deserialize-doc :default [o] o)
 
-(defmulti from-entity class)
-(defmulti from-collection class)
-(defmulti from-graph class)
-(defmulti from-cursor class)
+(defmulti as-entity class)
+(defmulti as-collection class)
+(defmulti as-graph class)
+(defmulti as-cursor class)
 
-(defmethod from-entity :default [o] (bean o)) ; only contain data
-(defmethod from-collection :default [o] o) ; needed for calling methods
-(defmethod from-graph :default [o] o) ; needed for calling methods
-(defmethod from-cursor :default [o] o) ; needed for calling methods
+(defmethod as-entity :default [o] (bean o)) ; only contain data
+(defmethod as-collection :default [o] o) ; needed for calling methods
+(defmethod as-graph :default [o] o) ; needed for calling methods
+(defmethod as-cursor :default [o] o) ; needed for calling methods
 
 ;; (require '[clj-arangodb.arangodb.adapter :as adapter])
 ;; (require '[clj-arangodb.velocypack.core :as vpack])
