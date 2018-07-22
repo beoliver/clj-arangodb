@@ -1,7 +1,8 @@
 (ns user
   (:require [clojure.reflect :as r]
             [clj-arangodb.arangodb.utils :as utils]
-            [clj-arangodb.arangodb.core :as arango]
+            [clj-arangodb.arangodb.core :as ar]
+            [clj-arangodb.arangodb.adapter :as ad]
             [clj-arangodb.arangodb.databases :as d]
             [clj-arangodb.arangodb.collections :as c]
             [clj-arangodb.arangodb.graph :as g]
@@ -12,7 +13,21 @@
            [com.arangodb.velocypack
             VPackSlice]
            [com.arangodb.entity
+            DocumentCreateEntity
             BaseDocument]))
+
+
+;; (def conn (ar/connect {:user "test"}))
+;; (def db (ar/create-and-get-database conn "myDB"))
+;; (def coll (d/create-and-get-collection db "myColl"))
+
+;; (def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
+
+;; (defmethod ad/serialize-doc clojure.lang.PersistentArrayMap [o]
+;;   (v/pack o))
+;; (defmethod ad/deserialize-doc VPackSlice [o]
+;;   (v/unpack o keyword))
+
 
 
 ;; (defonce conn (atom (arango/connect {:user "test"})))

@@ -8,19 +8,28 @@
            [com.arangodb.entity
             BaseDocument]))
 
+(def ^:dynamic *default-doc-class* VPackSlice)
+
 (defmulti serialize-doc class)
 (defmulti deserialize-doc class)
-(defmulti from-entity class)
-(defmulti from-collection class)
 
 (defmethod serialize-doc :default [o] o)
 (defmethod deserialize-doc :default [o] o)
-(defmethod from-entity :default [o] o)
-(defmethod from-collection :default [o] o)
 
-;; (defmethod deserialize-doc VPackSlice [o]
+(defmulti from-entity class)
+(defmulti from-collection class)
+(defmulti from-graph class)
+(defmulti from-cursor class)
+
+(defmethod from-entity :default [o] (bean o)) ; only contain data
+(defmethod from-collection :default [o] o) ; needed for calling methods
+(defmethod from-graph :default [o] o) ; needed for calling methods
+(defmethod from-cursor :default [o] o) ; needed for calling methods
+
+;; (require '[clj-arangodb.arangodb.adapter :as adapter])
+;; (require '[clj-arangodb.velocypack.core :as vpack])
+;; (defmethod adapter/deserialize-doc VPackSlice [o]
 ;;   (vpack/unpack o keyword))
-
 
 ;;; up to the user how to encode clojure maps;
 

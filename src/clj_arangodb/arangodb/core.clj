@@ -1,13 +1,11 @@
 (ns clj-arangodb.arangodb.core
   (:require [clojure.set :as set]
             [clj-arangodb.arangodb.options :as options]
-            [clj-arangodb.arangodb.conversions :as conv]
             [clj-arangodb.arangodb.utils :as utils])
   (:import [com.arangodb
             ArangoDB$Builder
             ArangoDB
-            ArangoDatabase]
-           com.arangodb.entity.BaseDocument))
+            ArangoDatabase]))
 
 (defn ^ArangoDB connect
   "

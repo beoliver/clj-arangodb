@@ -1,12 +1,6 @@
 (ns clj-arangodb.arangodb.utils
-  (:require [clojure.reflect :as r]
-            [clj-arangodb.velocypack.core :as vpack])
+  (:require [clojure.reflect :as r])
   (:import com.arangodb.Protocol))
-
-(defn maybe-vpack [doc]
-  (if (map? doc) (vpack/pack doc) doc))
-
-
 
 ;; magic function creation!
 
@@ -24,14 +18,6 @@
       (clojure.string/split #"\.")
       last
       lisp-ify))
-
-(defn lisp-ify [cammelCase]
-  (-> cammelCase
-      str
-      (clojure.string/replace #"(.)([A-Z][a-z]+)" "$1-$2")
-      (clojure.string/replace #"([a-z0-9])([A-Z])" "$1-$2")
-      (clojure.string/lower-case)
-      symbol))
 
 (defn wrap-method-member [{:keys [name
                                   return-type

@@ -1,7 +1,10 @@
 (ns clj-arangodb.arangodb.graph
   (:require
    [clj-arangodb.velocypack.core :as vpack]
-   [clj-arangodb.arangodb.adapter :refer [from-entity serialize-doc deserialize-doc]]
+   [clj-arangodb.arangodb.adapter :refer [from-entity
+                                          from-collection
+                                          serialize-doc
+                                          deserialize-doc]]
    [clj-arangodb.arangodb.options :as options])
   (:import [com.arangodb.velocypack
             VPackSlice]
@@ -28,7 +31,8 @@
             DocumentCreateOptions
             DocumentReadOptions
             DocumentReplaceOptions
-            DocumentUpdateOptions]))
+            DocumentUpdateOptions])
+  (:refer-clojure :exclude [drop]))
 
 (defn ^Boolean exists? [^ArangoGraph x]
   (.exists x))
@@ -48,32 +52,46 @@
 
 ;; (map :name (:members (r/reflect conn)))
 
-
-
 (defn get-vertex-collections [^ArangoGraph graph]
-  (->result (.getVertexCollections graph)))
+  ;; collection of strings
+  (.getVertexCollections graph))
 
-(defn get-edge-definitions [^ArangoGraph graph]
-  (->result (.getEdgeDefinitions graph)))
+(defn ^ArangoVertexCollection vertex-collection
+  "get the actual collection"
+  [^ArangoGraph graph ^String name]
+  (from-collection (.vertexCollection graph name)))
 
-(defn edge-collection "get the actual collection" [^ArangoGraph graph coll-name]
-  (->result (.edgeCollection graph coll-name)))
-
-(defn vertex-collection "get the actual collection" [^ArangoGraph graph coll-name]
-  (->result (.vertexCollection graph coll-name)))
-
-(defn add-vertex-collection [^ArangoGraph graph ^String collection-name]
+(defn ^GraphEntity add-vertex-collection [^ArangoGraph graph ^String name]
   ;; returns ArangoDBException Response: 400, Error: 1938 - collection used in orphans if
   ;; you try adding the collection twice
   ;; arangoDB.db("myDatabase").graph("myGraph").drop();
-  (->result (.addVertexCollection graph collection-name)))
+  (from-entity (.addVertexCollection graph name)))
 
-(defn edge-definition
+(defn get-edge-definitions [^ArangoGraph graph]
+  ;; collection of strings
+  (.getEdgeDefinitions graph))
+
+(defn ^ArangoEdgeCollection edge-collection
+  "get the actual collection"
+  [^ArangoGraph graph ^String name]
+  (from-collection (.edgeCollection graph name)))
+
+(defn ^EdgeDefinition edge-definition
   [{:keys [name from to] :as edge-definition}]
   (-> (new EdgeDefinition)
       (.collection name)
       (.from (into-array from))
       (.to (into-array to))))
+
+(defn ^GraphEntity add-edge-definition
+  [^ArangoGraph graph ^EdgeDefinition definition]
+  (from-entity (.addEdgeDefinition graph definition)))
+
+(defn ^GraphEntity replace-edge-definition [^ArangoGraph graph ^EdgeDefinition definition]
+  (from-entity (.replaceEdgeDefinition graph definition)))
+
+(defn ^GraphEntity remove-edge-definition [^ArangoGraph graph ^String name]
+  (from-entity (.removeEdgeDefinition graph name)))
 
 (defn ^VertexEntity insert-vertex
   ([^ArangoVertexCollection coll doc]
