@@ -30,10 +30,6 @@ the namespace `clj-arangodb.arangodb.adapter` contains 3 multimethods
 (defmulti serialize-doc class)
 (defmulti deserialize-doc class)
 (defmulti from-entity class)
-
-(defmethod serialize-doc :default [o] o)
-(defmethod deserialize-doc :default [o] o)
-(defmethod from-entity :default [o] (bean o))
 ```
 On top of that the is 1 dynamic var `*default-doc-class*` that is bound to the class `com.arangodb.velocypack.VPackSlice`
 
@@ -57,31 +53,9 @@ lets see what happens
 (def conn (ar/connect {:user "test"}))
 (def db (ar/create-and-get-database conn "myDB"))
 (def coll (d/create-and-get-collection db "myColl"))
+```
 
-(def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
-VPackValueTypeException Expecting type OBJECT  com.arangodb.velocypack.VPackSlice.objectIterator (VPackSlice.java:772)
-```
-Ok.. so it's broken? Not quite - remeber those multi methods? well, in any call that will send documents
-to the database, the multimethod `serialize-doc` is called. Currently it defaults to whatever you give it
-so in our case a `clojure.lang.PersistentArrayMap`.
-
-Perhaps you find a better vpack library - but until you do, you can find one under `clj-arangodb.velocypack.core`
-This ns provides two functions `pack` and `unpack`
-So lets extend the multimethod
-```clojure
-(require '[clj-arangodb.arangodb.adapter :as adapter]
-	 '[clj-arangodb.velocypack.core :as vpack])
-(defmethod adapter/serialize-doc clojure.lang.PersistentArrayMap [o]
-  (vpack/pack o))
-```
-If we now try again:
-```clojure
-user> (def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
-#'user/res
-user> res
-{:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/298178", :key "298178", :new nil, :old nil, :rev "_XJ8g7Yi--_"}
-```
-Well look at that! By default calls that return a `Entity` of some kind are wrapped with `adapter/from-entity`.
+By default calls that return a `Entity` of some kind are wrapped with `adapter/from-entity`.
 `Entity` results are only data - ie they are not handles.
 The default for this is to call `bean` and then examines the values under the keys - this approach has been trail and error, but the
 default aim to give the user readable and usable results - in general if the entity contains results, these results are *not*
@@ -112,7 +86,7 @@ As far as I can tell there is no Abstract Entity class to dispatch on... which i
         :else obj))
 ```
 
-Lets add another
+Lets add a document
 ```clojure
 user> (c/insert-document coll {:name "nested" :data {:a {:b [1 2 3] :c true}}})
 {:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/360443", :key "360443", :new nil, :old nil, :rev "_XKHy-X---_"}
@@ -122,6 +96,8 @@ Now, it's time to get the data back again.
 user> (c/get-document coll "298604")
 {:_id "helloColl/360443", :_key "360443", :_rev "_XKHy-X---_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
 ```
+By default maps are packed and unpacked as `VPackSlice` objects - the implementation of this is the velocypack namespace.
+
 if we pass a class as well we can get a different type back
 ```clojure
 user> (c/get-document c "360443" String)
@@ -131,5 +107,6 @@ user> (c/get-document c "360443" java.util.Map)
 user> (c/get-document c "360443" BaseDocument)
 {:class com.arangodb.entity.BaseDocument, :id "helloColl/360443", :key "360443", :properties {"data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}, :revision "_XKHy-X---_"}
 ```
+If you want to use a json serializer/deserializer then just extend the multimethods `serialize-doc` and `deserialize-doc` for the class `String`
 
 Have a play - and remeber the multimethods! - if you don't like the data you are getting, change it...
