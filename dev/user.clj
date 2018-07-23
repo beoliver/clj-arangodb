@@ -9,13 +9,48 @@
             [clj-arangodb.velocypack.core :as v]
             [clj-arangodb.arangodb.adapter :as adapter])
   (:import [com.arangodb
-            ArangoCollection]
+            ArangoCollection
+            ArangoDB$Builder
+            ArangoDB]
            [com.arangodb.velocypack
             VPackSlice]
            [com.arangodb.entity
             DocumentCreateEntity
             BaseDocument]))
 
+;; unalias all aliases in ns
+;; (map (partial ns-unalias *ns*) (keys (ns-aliases *ns*)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;; (defn f [^ArangoDB db]
+;;   (.util db))
+
+
+
+
+;; (defn serialize [o]
+;;   (let [^ArangoDB db (.build (new ArangoDB$Builder))]
+;;     (. (.util db) serialize o)))
+
+;; (defn deserialize [o class]
+;;   (let [^ArangoDB db (.build (new ArangoDB$Builder))]
+;;     (. (.util db) deserialize o class)))
 
 ;; (def conn (ar/connect {:user "test"}))
 ;; (def db (ar/create-and-get-database conn "myDB"))

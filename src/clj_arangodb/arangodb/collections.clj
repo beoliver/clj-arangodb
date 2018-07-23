@@ -4,16 +4,15 @@
   (:import [com.arangodb
             ArangoCollection]
            [com.arangodb.entity
-            IndexEntity
-            BaseDocument
-            BaseEdgeDocument
             CollectionEntity
+            IndexEntity
             MultiDocumentEntity
             DocumentCreateEntity
-            MultiDocumentEntity
             DocumentUpdateEntity
             DocumentDeleteEntity
-            DocumentImportEntity]
+            DocumentImportEntity
+            CollectionPropertiesEntity
+            CollectionRevisionEntity]
            [com.arangodb.model
             CollectionPropertiesOptions
             SkiplistIndexOptions
@@ -29,21 +28,33 @@
             DocumentImportOptions])
   (:refer-clojure :exclude [drop load]))
 
+(defn ^CollectionEntity get-info [^ArangoCollection coll]
+  (ad/from-entity (.getInfo coll)))
+
+(defn ^CollectionPropertiesEntity get-properties [^ArangoCollection coll]
+  (ad/from-entity (.getProperties coll)))
+
+(defn ^CollectionRevisionEntity get-revision [^ArangoCollection coll]
+  (ad/from-entity (.getRevision coll)))
+
+(defn ^Boolean exists? [^ArangoCollection coll]
+  (.exists coll))
+
 (defn ^CollectionEntity rename [^ArangoCollection coll ^String new-name]
-  (ad/as-entity (.rename coll new-name)))
+  (ad/from-entity (.rename coll new-name)))
 
 (defn ^CollectionEntity load [^ArangoCollection coll]
-  (ad/as-entity (.load coll)))
+  (ad/from-entity (.load coll)))
 
 (defn ^CollectionEntity unload [^ArangoCollection coll]
-  (ad/as-entity (.unload coll)))
+  (ad/from-entity (.unload coll)))
 
 (defn ^CollectionEntity change-properties
   [^ArangoCollection coll ^CollectionPropertiesOptions options]
-  (ad/as-entity (.changeProperties coll (options/build CollectionPropertiesOptions options))))
+  (ad/from-entity (.changeProperties coll (options/build CollectionPropertiesOptions options))))
 
 (defn ^CollectionEntity truncate [^ArangoCollection coll]
-  (ad/as-entity (.tuncate coll)))
+  (ad/from-entity (.tuncate coll)))
 
 (defn drop ;;void
   ([^ArangoCollection coll] (.drop coll))
@@ -51,36 +62,36 @@
 
 (defn ^IndexEntity ensure-hash-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^HashIndexOptions options]
-  (ad/as-entity (.ensureHashIndex coll fields (options/build HashIndexOptions options))))
+  (ad/from-entity (.ensureHashIndex coll fields (options/build HashIndexOptions options))))
 
 (defn ^IndexEntity ensure-skip-list-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^SkiplistIndexOptions options]
-  (ad/as-entity (.ensureSkiplistIndex coll fields (options/build SkiplistIndexOptions options))))
+  (ad/from-entity (.ensureSkiplistIndex coll fields (options/build SkiplistIndexOptions options))))
 
 (defn ^IndexEntity ensure-geo-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^GeoIndexOptions options]
-  (ad/as-entity (.ensureGeoIndex coll fields (options/build GeoIndexOptions options))))
+  (ad/from-entity (.ensureGeoIndex coll fields (options/build GeoIndexOptions options))))
 
 (defn ^IndexEntity ensure-full-text-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^FulltextIndexOptions options]
-  (ad/as-entity (.ensureFulltextIndex coll fields (options/build FulltextIndexOptions options))))
+  (ad/from-entity (.ensureFulltextIndex coll fields (options/build FulltextIndexOptions options))))
 
-(defn ^IndexEntity ensure-persisten-index
+(defn ^IndexEntity ensure-persistent-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^PersistentIndexOptions options]
-  (ad/as-entity (.ensurePersistentIndex coll fields (options/build PersistentIndexOptions options))))
+  (ad/from-entity (.ensurePersistentIndex coll fields (options/build PersistentIndexOptions options))))
 
 (defn ^IndexEntity get-index
   [^ArangoCollection coll ^String index]
-  (ad/as-entity (.getIndex coll index)))
+  (ad/from-entity (.getIndex coll index)))
 
 (defn ^java.util.Collection get-indexes
+  ;; collection of IndexEntity
   [^ArangoCollection coll]
-  (map ad/as-entity (.getIndexes coll)))
+  (map ad/from-entity (.getIndexes coll)))
 
 (defn ^String delete-index
   [^ArangoCollection coll ^String index]
   (.deleteIndex coll index))
-
 
 (defn get-document
   "
@@ -88,6 +99,7 @@
   `String` will return a json encoding
   `VpackSlice` will return a arangodb velocypack slice
   `BaseDocument` will return a java object
+  `Map` will return a java map
   "
   ([^ArangoCollection coll ^String key]
    (get-document coll key ad/*default-doc-class*))
@@ -102,69 +114,70 @@
   `String` will return a json encoding
   `VpackSlice` will return a arangodb velocypack slice
   `BaseDocument` will return a java object
+  `Map` will return a java map
   "
   ([^ArangoCollection coll keys]
    (get-documents coll keys ad/*default-doc-class*))
   ([^ArangoCollection coll keys ^Class as]
-   (ad/as-entity (.getDocuments coll (java.util.ArrayList. keys) as))))
+   (ad/from-entity (.getDocuments coll (java.util.ArrayList. keys) as))))
 
 (defn ^DocumentCreateEntity insert-document
   ([^ArangoCollection coll ^Object doc]
-   (ad/as-entity (.insertDocument coll (ad/serialize-doc doc))))
+   (ad/from-entity (.insertDocument coll (ad/serialize-doc doc))))
   ([^ArangoCollection coll ^Object doc ^DocumentCreateOptions options]
-   (ad/as-entity (.insertDocument coll (ad/serialize-doc doc)
+   (ad/from-entity (.insertDocument coll (ad/serialize-doc doc)
                                     (options/build DocumentCreateOptions options)))))
 
 (defn ^MultiDocumentEntity insert-documents
   ([^ArangoCollection coll docs]
-   (ad/as-entity (.insertDocuments coll (java.util.ArrayList.
+   (ad/from-entity (.insertDocuments coll (java.util.ArrayList.
                                            (map ad/serialize-doc docs)))))
   ([^ArangoCollection coll docs ^DocumentCreateOptions options]
-   (ad/as-entity (.insertDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
+   (ad/from-entity (.insertDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
                                      (options/build DocumentCreateOptions options)))))
 
 (defn ^DocumentImportEntity import-documents
   ([^ArangoCollection coll docs]
-   (ad/as-entity (.importDocuments coll docs)))
+   (ad/from-entity (.importDocuments coll docs)))
   ([^ArangoCollection coll docs ^DocumentImportOptions options]
-   (ad/as-entity (.importDocuments coll docs (options/build DocumentImportOptions options)))))
+   (ad/from-entity (.importDocuments coll docs (options/build DocumentImportOptions options)))))
 
 (defn ^DocumentUpdateEntity update-document
   ([^ArangoCollection coll ^String key ^Object doc]
-   (ad/as-entity (.updateDocument coll key (ad/serialize-doc doc))))
+   (ad/from-entity (.updateDocument coll key (ad/serialize-doc doc))))
   ([^ArangoCollection coll ^String key doc ^DocumentUpdateOptions options]
-   (ad/as-entity (.updateDocument coll key (ad/serialize-doc doc)
-                                  (options/build DocumentUpdateOptions options)))))
+   (ad/from-entity (.updateDocument coll key (ad/serialize-doc doc)
+                                    (options/build DocumentUpdateOptions options)))))
 
 (defn ^MultiDocumentEntity update-documents
   ([^ArangoCollection coll docs]
-   (ad/as-entity (.updateDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs)))))
+   (ad/from-entity (.updateDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs)))))
   ([^ArangoCollection coll docs ^DocumentUpdateOptions options]
-   (ad/as-entity (.updateDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
-                                   (options/build DocumentUpdateOptions options)))))
+   (ad/from-entity (.updateDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
+                                     (options/build DocumentUpdateOptions options)))))
 
 (defn ^DocumentUpdateEntity replace-document
   ([^ArangoCollection coll ^String key ^Object doc]
-   (ad/as-entity (.replaceDocument coll key doc)))
+   (ad/from-entity (.replaceDocument coll key doc)))
   ([^ArangoCollection coll ^String key ^Object doc ^DocumentReplaceOptions options]
-   (ad/as-entity (.replaceDocument coll key doc (options/build DocumentReplaceOptions options)))))
+   (ad/from-entity (.replaceDocument coll key doc (options/build DocumentReplaceOptions options)))))
 
 (defn ^MultiDocumentEntity replace-documents
   ([^ArangoCollection coll docs]
-   (ad/as-entity (.replaceDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs)))))
+   (ad/from-entity (.replaceDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs)))))
   ([^ArangoCollection coll docs ^DocumentReplaceOptions options]
-   (ad/as-entity (.replaceDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
-                                    (options/build DocumentReplaceOptions options)))))
+   (ad/from-entity (.replaceDocuments coll (java.util.ArrayList. (map ad/serialize-doc docs))
+                                      (options/build DocumentReplaceOptions options)))))
 
 (defn ^DocumentDeleteEntity delete-document
   ([^ArangoCollection coll ^String key]
-   (ad/as-entity (.deleteDocument coll key)))
+   (ad/from-entity (.deleteDocument coll key)))
   ([^ArangoCollection coll ^String key ^Class as ^DocumentDeleteOptions options]
-   (ad/as-entity (.deleteDocument coll key as (options/build DocumentDeleteOptions options)))))
+   (ad/from-entity (.deleteDocument coll key as (options/build DocumentDeleteOptions options)))))
 
 (defn ^MultiDocumentEntity delete-documents
   ([^ArangoCollection coll keys]
-   (ad/as-entity (.deleteDocuments coll (java.util.ArrayList. keys))))
+   (ad/from-entity (.deleteDocuments coll (java.util.ArrayList. keys))))
   ([^ArangoCollection coll keys ^Class as ^DocumentDeleteOptions options]
-   (ad/as-entity (.deleteDocuments coll (java.util.ArrayList. keys) as
-                                   (options/build DocumentDeleteOptions options)))))
+   (ad/from-entity (.deleteDocuments coll (java.util.ArrayList. keys) as
+                                     (options/build DocumentDeleteOptions options)))))

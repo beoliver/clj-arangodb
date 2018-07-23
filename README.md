@@ -24,18 +24,16 @@ In the clojure version we are doing exactly the same thing under the hood.
 (import 'com.arangodb.Protocol)
 (def arango-db (connect {:useProtocol Protocol/VST :host ["192.168.182.50" 8888]}))
 ```
-There are no lispy-key/keywords for these things I'm afraid.
-
 ## One very important namespace
-the namespace `clj-arangodb.arangodb.adapter` currently contains 6 multimethods (3 of which are important to understand)
+the namespace `clj-arangodb.arangodb.adapter` contains 3 multimethods
 ```clojure
 (defmulti serialize-doc class)
 (defmulti deserialize-doc class)
-(defmulti as-entity class)
+(defmulti from-entity class)
 
 (defmethod serialize-doc :default [o] o)
 (defmethod deserialize-doc :default [o] o)
-(defmethod as-entity :default [o] (bean o))
+(defmethod from-entity :default [o] (bean o))
 ```
 On top of that the is 1 dynamic var `*default-doc-class*` that is bound to the class `com.arangodb.velocypack.VPackSlice`
 
@@ -83,55 +81,55 @@ user> (def res (c/insert-document coll {:name "clj-arango" :version "0.0.1"}))
 user> res
 {:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/298178", :key "298178", :new nil, :old nil, :rev "_XJ8g7Yi--_"}
 ```
-Well look at that! By default calls that return a `Entity` of some kind are wrapped with `adapter/as-entity`. by default this
-calls `bean` on the object - `Entity` results are only data - ie they are not handles.
+Well look at that! By default calls that return a `Entity` of some kind are wrapped with `adapter/from-entity`.
+`Entity` results are only data - ie they are not handles.
+The default for this is to call `bean` and then examines the values under the keys - this approach has been trail and error, but the
+default aim to give the user readable and usable results - in general if the entity contains results, these results are *not*
+desearialzed. all sub classes are - (some are converted to string to give sensible data)
+
+As far as I can tell there is no Abstract Entity class to dispatch on... which is a bit awkward
+
+```clojure
+(defmethod from-entity :default [obj]
+  (cond (is-entity? obj)
+        (try (.getDeclaringClass obj)
+             ;; some entites only make sense as string
+             ;; very much a heuristic here
+             (str obj)
+             (catch java.lang.IllegalArgumentException _
+               (persistent!
+                (reduce (fn [m [k v]]
+                          (assoc! m k (from-entity v)))
+                        (transient {}) (bean obj)))))
+        ;; an array 'inside' an entity
+        ;; we only map if we know the first item is an entity
+        ;; this is because a MultiDocumententity may contain
+        ;; return values or Entities depending on the call.
+        (= java.util.ArrayList (-> obj class))
+        (cond (empty? obj) []
+              (is-entity? (.get obj 0)) (vec (map from-entity obj))
+              :else (vec obj))
+        :else obj))
+```
 
 Lets add another
 ```clojure
 user> (c/insert-document coll {:name "nested" :data {:a {:b [1 2 3] :c true}}})
-{:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/298604", :key "298604", :new nil, :old nil, :rev "_XJ8k7mu--_"}
+{:class com.arangodb.entity.DocumentCreateEntity, :id "helloColl/360443", :key "360443", :new nil, :old nil, :rev "_XKHy-X---_"}
 ```
 Now, it's time to get the data back again.
 ```clojure
 user> (c/get-document coll "298604")
-#object[com.arangodb.velocypack.VPackSlice 0x20fa57af "{\"_id\":\"helloColl\\/298604\",\"_key\":\"298604\",\"_rev\":\"_XJ8k7mu--_\",\"data\":{\"a\":{\"b\":[1,2,3],\"c\":true}},\"name\":\"nested\"}"]
+{:_id "helloColl/360443", :_key "360443", :_rev "_XKHy-X---_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
 ```
 if we pass a class as well we can get a different type back
 ```clojure
-user> (c/get-document coll "298604" String)
-"{\"_id\":\"helloColl\\/298604\",\"_key\":\"298604\",\"_rev\":\"_XJ8k7mu--_\",\"data\":{\"a\":{\"b\":[1,2,3],\"c\":true}},\"name\":\"nested\"}"
+user> (c/get-document c "360443" String)
+"{\"_id\":\"helloColl\\/360443\",\"_key\":\"360443\",\"_rev\":\"_XKHy-X---_\",\"data\":{\"a\":{\"b\":[1,2,3],\"c\":true}},\"name\":\"nested\"}"
+user> (c/get-document c "360443" java.util.Map)
+{"data" {"a" {"b" [1 2 3], "c" true}}, "_rev" "_XKHy-X---_", "name" "nested", "_id" "helloColl/360443", "_key" "360443"}
+user> (c/get-document c "360443" BaseDocument)
+{:class com.arangodb.entity.BaseDocument, :id "helloColl/360443", :key "360443", :properties {"data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}, :revision "_XKHy-X---_"}
 ```
-again we will extend a multimethod
-```clojure
-(defmethod adapter/deserialize-doc VPackSlice [o]
-  (vpack/unpack o))
-
-user> (c/get-document coll "298604")
-{"_id" "helloColl/298604", "_key" "298604", "_rev" "_XJ8k7mu--_", "data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}
-```
-
-But... as we like keywords, and as we can have keywords, we might as well use them!
-```clojure
-(defmethod adapter/deserialize-doc VPackSlice [o]
-  (vpack/unpack o keyword))
-
-user> (c/get-document coll "298604")
-{:_id "helloColl/298604", :_key "298604", :_rev "_XJ8k7mu--_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
-```
-There is one other way of getting information back, and that is to use the `com.arangodb.entity.BaseDocument` class.
-Assuming that we have imported it
-```clojure
-user> (c/get-document coll "298604" BaseDocument)
-#object[com.arangodb.entity.BaseDocument 0x5e6fd7fb "BaseDocument [documentRevision=_XJ8k7mu--_, documentHandle=helloColl/298604, documentKey=298604, properties={data={a={b=[1, 2, 3], c=true}}, name=nested}]"]
-```
-If you want to get them back as beans you might want something like this.
-```clojure
-(defmethod adapter/deserialize-doc BaseDocument [o]
-  (-> o bean (dissoc :class)))
-
-user> (c/get-document coll "298604" BaseDocument)
-{:id "helloColl/298604", :key "298604", :properties {"data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}, :revision "_XJ8k7mu--_"}
-```
-If you wanted to keywordize then you would need to use a lib like clojure walk or write your own function.
 
 Have a play - and remeber the multimethods! - if you don't like the data you are getting, change it...
