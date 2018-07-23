@@ -4,16 +4,15 @@
   (:import [com.arangodb
             ArangoCollection]
            [com.arangodb.entity
-            IndexEntity
-            BaseDocument
-            BaseEdgeDocument
             CollectionEntity
+            IndexEntity
             MultiDocumentEntity
             DocumentCreateEntity
-            MultiDocumentEntity
             DocumentUpdateEntity
             DocumentDeleteEntity
-            DocumentImportEntity]
+            DocumentImportEntity
+            CollectionPropertiesEntity
+            CollectionRevisionEntity]
            [com.arangodb.model
             CollectionPropertiesOptions
             SkiplistIndexOptions
@@ -28,6 +27,18 @@
             DocumentReplaceOptions
             DocumentImportOptions])
   (:refer-clojure :exclude [drop load]))
+
+(defn ^CollectionEntity get-info [^ArangoCollection coll]
+  (ad/from-entity (.getInfo coll)))
+
+(defn ^CollectionPropertiesEntity get-properties [^ArangoCollection coll]
+  (ad/from-entity (.getProperties coll)))
+
+(defn ^CollectionRevisionEntity get-revision [^ArangoCollection coll]
+  (ad/from-entity (.getRevision coll)))
+
+(defn ^Boolean exists? [^ArangoCollection coll]
+  (.exists coll))
 
 (defn ^CollectionEntity rename [^ArangoCollection coll ^String new-name]
   (ad/from-entity (.rename coll new-name)))
@@ -45,6 +56,10 @@
 (defn ^CollectionEntity truncate [^ArangoCollection coll]
   (ad/from-entity (.tuncate coll)))
 
+(defn drop ;;void
+  ([^ArangoCollection coll] (.drop coll))
+  ([^ArangoCollection coll ^Boolean flag] (.drop coll flag)))
+
 (defn ^IndexEntity ensure-hash-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^HashIndexOptions options]
   (ad/from-entity (.ensureHashIndex coll fields (options/build HashIndexOptions options))))
@@ -61,7 +76,7 @@
   [^ArangoCollection coll ^java.lang.Iterable fields ^FulltextIndexOptions options]
   (ad/from-entity (.ensureFulltextIndex coll fields (options/build FulltextIndexOptions options))))
 
-(defn ^IndexEntity ensure-persisten-index
+(defn ^IndexEntity ensure-persistent-index
   [^ArangoCollection coll ^java.lang.Iterable fields ^PersistentIndexOptions options]
   (ad/from-entity (.ensurePersistentIndex coll fields (options/build PersistentIndexOptions options))))
 
@@ -70,6 +85,7 @@
   (ad/from-entity (.getIndex coll index)))
 
 (defn ^java.util.Collection get-indexes
+  ;; collection of IndexEntity
   [^ArangoCollection coll]
   (map ad/from-entity (.getIndexes coll)))
 
@@ -77,13 +93,13 @@
   [^ArangoCollection coll ^String index]
   (.deleteIndex coll index))
 
-
 (defn get-document
   "
    Class represents the class of the returned document.
   `String` will return a json encoding
   `VpackSlice` will return a arangodb velocypack slice
   `BaseDocument` will return a java object
+  `Map` will return a java map
   "
   ([^ArangoCollection coll ^String key]
    (get-document coll key ad/*default-doc-class*))
@@ -98,6 +114,7 @@
   `String` will return a json encoding
   `VpackSlice` will return a arangodb velocypack slice
   `BaseDocument` will return a java object
+  `Map` will return a java map
   "
   ([^ArangoCollection coll keys]
    (get-documents coll keys ad/*default-doc-class*))
@@ -164,10 +181,3 @@
   ([^ArangoCollection coll keys ^Class as ^DocumentDeleteOptions options]
    (ad/from-entity (.deleteDocuments coll (java.util.ArrayList. keys) as
                                      (options/build DocumentDeleteOptions options)))))
-
-(defn truncate [^ArangoCollection coll]
-  (.truncate coll))
-
-(defn drop
-  ([^ArangoCollection coll] (.drop coll))
-  ([^ArangoCollection coll ^Boolean flag] (.drop coll flag)))

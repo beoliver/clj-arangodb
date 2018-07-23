@@ -1,7 +1,5 @@
 (ns clj-arangodb.arangodb.admin)
 
-;;; namespace for all admin functionality
-
 (defn version
   "can be called on a `conn` or `database`, retuns a map with the keys
   `:liscense`, `:server`, `:version`"
