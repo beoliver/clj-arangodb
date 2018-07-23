@@ -93,7 +93,7 @@ user> (c/insert-document coll {:name "nested" :data {:a {:b [1 2 3] :c true}}})
 ```
 Now, it's time to get the data back again.
 ```clojure
-user> (c/get-document coll "298604")
+user> (c/get-document coll "360443")
 {:_id "helloColl/360443", :_key "360443", :_rev "_XKHy-X---_", :data {:a {:b [1 2 3], :c true}}, :name "nested"}
 ```
 By default maps are packed and unpacked as `VPackSlice` objects - the implementation of this is the velocypack namespace.
