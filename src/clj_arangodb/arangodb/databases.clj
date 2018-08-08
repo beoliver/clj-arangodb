@@ -81,10 +81,10 @@
   (vec (map ad/from-entity (.getGraphs db))))
 
 (defn collection-exists? [^ArangoDatabase db collection-name]
-  (some #(= collection-name (.getName %)) (get-collections db identity)))
+  (some #(= collection-name (.getName %)) (.getCollections db)))
 
 (defn graph-exists? [^ArangoDatabase db graph-name]
-  (some #(= graph-name (.getName %)) (get-graphs db identity)))
+  (some #(= graph-name (.getName %)) (.getGraphs db)))
 
 (defn ^GraphEntity create-graph
   "Create a new graph `graph-name`. edge-definitions must be a non empty
