@@ -23,7 +23,7 @@
   ([] (connect {}))
   ([options] (.build (options/build ArangoDB$Builder options))))
 
-(defn shutdown [^ArangoDB conn])
+(defn shutdown [^ArangoDB conn] (.shutdown conn))
 
 (defn ^Boolean create-database
   "returns `true` on success else `ArangoDBException`"
