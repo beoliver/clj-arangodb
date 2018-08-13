@@ -1,4 +1,4 @@
-(ns clj-arangodb.arangodb.test.helper
+(ns clj-arangodb.arangodb.helper
   (:require  [clj-arangodb.arangodb.core :as a]
              [clj-arangodb.arangodb.databases :as d]
              [clj-arangodb.arangodb.collections :as c]))

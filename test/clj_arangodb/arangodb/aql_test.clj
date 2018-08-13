@@ -1,7 +1,7 @@
 (ns clj-arangodb.arangodb.aql-test
   (:require [clj-arangodb.arangodb.databases :as d]
             [clj-arangodb.arangodb.aql :as aql]
-            [clj-arangodb.arangodb.test.helper :as h]
+            [clj-arangodb.arangodb.helper :as h]
             [clj-arangodb.arangodb.cursor :as cursor]
             [clj-arangodb.arangodb.adapter :as adapter]
             [clojure.test :refer :all]))

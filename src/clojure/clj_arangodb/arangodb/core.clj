@@ -1,7 +1,6 @@
 (ns clj-arangodb.arangodb.core
   (:require [clojure.set :as set]
-            [clj-arangodb.arangodb.options :as options]
-            [clj-arangodb.arangodb.utils :as utils])
+            [clj-arangodb.arangodb.options :as options])
   (:import [com.arangodb
             ArangoDB$Builder
             ArangoDB

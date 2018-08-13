@@ -1,10 +1,11 @@
 (ns clj-arangodb.arangodb.cursor-test
-  (:require [clj-arangodb.arangodb.databases :as d]
-            [clj-arangodb.arangodb.aql :as aql]
-            [clj-arangodb.arangodb.adapter :as adapter]
-            [clj-arangodb.arangodb.cursor :as cursor]
-            [clj-arangodb.arangodb.test.helper :as h]
-            [clojure.test :refer :all]))
+  (:require
+   [clj-arangodb.arangodb.databases :as d]
+   [clj-arangodb.arangodb.aql :as aql]
+   [clj-arangodb.arangodb.adapter :as adapter]
+   [clj-arangodb.arangodb.cursor :as cursor]
+   [clj-arangodb.arangodb.helper :as h]
+   [clojure.test :refer :all]))
 
 (deftest cursor-stats-test
   (h/with-temp-db [db "testDB"]

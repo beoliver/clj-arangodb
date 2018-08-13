@@ -4,8 +4,8 @@
             [clj-arangodb.arangodb.aql :as aql]
             [clj-arangodb.arangodb.adapter :as adapter]
             [clj-arangodb.arangodb.cursor :as cursor]
-            [clj-arangodb.arangodb.test.helper :as h]
-            [clj-arangodb.arangodb.test.test-data :as td]
+            [clj-arangodb.arangodb.helper :as h]
+            [clj-arangodb.arangodb.test-data :as td]
             [clojure.test :refer :all]))
 
 (deftest collection-size-test

@@ -1,8 +1,8 @@
-(ns clj-arangodb.arangodb.test.test-data
+(ns clj-arangodb.arangodb.test-data
   (:require [clj-arangodb.arangodb.databases :as d]
             [clj-arangodb.arangodb.adapter :as adapter]
             [clj-arangodb.arangodb.aql :as aql]
-            [clj-arangodb.arangodb.test.helper :as h]))
+            [clj-arangodb.arangodb.helper :as h]))
 
 (def ^:const game-of-thrones-db-label "gameOfThronesDB")
 
