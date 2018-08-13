@@ -1,6 +1,7 @@
 (ns clj-arangodb.arangodb.databases
   (:require [clj-arangodb.velocypack.core :as vpack]
             [clj-arangodb.arangodb.graph :as graph]
+            [clj-arangodb.arangodb.aql :as aql]
             [clj-arangodb.arangodb.adapter :as ad]
             [clj-arangodb.arangodb.options :as options])
   (:import [com.arangodb
@@ -103,9 +104,13 @@
 
 (def get-graph graph)
 
-(defn ^ArangoCursor query
+(defn query ^ArangoCursor
   ;; can pass java.util.Map / java.util.List as well
-  ([^ArangoDatabase db ^String query-str]
-   (query db query-str nil nil ad/*default-doc-class*))
-  ([^ArangoDatabase db ^String query-str bindvars ^AqlQueryOptions options ^Class as]
-   (.query db query-str bindvars (options/build AqlQueryOptions options) as)))
+  ([^ArangoDatabase db aql-query]
+   (query db aql-query nil nil ad/*default-doc-class*))
+  ([^ArangoDatabase db aql-query ^Class as]
+   (query db aql-query nil nil as))
+  ([^ArangoDatabase db aql-query ^AqlQueryOptions options ^Class as]
+   (query db aql-query nil options as))
+  ([^ArangoDatabase db aql-query bindvars ^AqlQueryOptions options ^Class as]
+   (.query db ^String (aql/serialize aql-query) bindvars (options/build AqlQueryOptions options) as)))

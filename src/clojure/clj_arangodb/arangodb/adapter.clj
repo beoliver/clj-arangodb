@@ -48,8 +48,6 @@
     (or (instance? Entity o)
         (= entity-package-name (-> o class .getPackage .getName)))))
 
-(defmethod from-entity Enum [o] (str o))
-
 (defn as-entity-vec-or-deserialized [^ArrayList o]
   (if (= 0 (.size o))
     []
@@ -62,6 +60,8 @@
           (recur
            (inc i)
            (conj! xs (f (.get o i)))))))))
+
+(defmethod from-entity Enum [o] (str o))
 
 (defmethod from-entity MultiDocumentEntity
   [^MultiDocumentEntity o]
