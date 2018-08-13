@@ -8,11 +8,9 @@ The maintainers of arangodb provide a java driver for communicating with an aran
 This library provides clojure developers a thin (and incomplete) wrapper of that interface.
 Much like monger, the java implementation is still visible.
 
-functions are lispy versions of their java counterparts.
-options are passed as map - with keywords written in `:cammelCase` - for example `{:someOption "a string" :anotherOption ["192.168.1.1", 8888]}`
+Functions are lispy versions of their java counterparts.
+Options are passed as maps - with keywords written in `:cammelCase` - for example `{:someOption "a string" :anotherOption ["192.168.1.1", 8888]}`
 For more information about what constitutes a valid option for a method you must consult the java api documentation.
-As an aside, I considered adding destructuring to give the user nice feedback - but there are just to many of them! If you are interested -
-have a look at the options namespace and the functions `fn-builder` and `build` - we just take the map and create method calls from the keys.
 
 This wrapper exposes most of the available methods -
 If we look at how the java code is used, in this example a new connecton is being made to a server.
@@ -31,7 +29,7 @@ the namespace `clj-arangodb.arangodb.adapter` contains 3 multimethods
 (defmulti deserialize-doc class)
 (defmulti from-entity class)
 ```
-On top of that the is 1 dynamic var `*default-doc-class*` that is bound to the class `com.arangodb.velocypack.VPackSlice`
+On top of that there is 1 dynamic var `*default-doc-class*` that is bound to the class `com.arangodb.velocypack.VPackSlice`
 
 To understand the design of this library it is important to undererstand a little bit about how the java client works.
 
@@ -42,6 +40,8 @@ have guessed have a lot to do with VPackSlices or *velocy packs*.
 As clojurists we like to work with maps and it gets really annoying having to wrap all of your calls in some "to-string" -
 However, as there are multiple options in how data can be sent, I have tried to be as un-opinionated as possible.
 I also didn't want to have any dependencies (so no external json libs - pjson is fast but its up to you).
+
+While the ArangoDB Java driver allows for custom serializer/deserialiser modules - as of now there is not one for Clojure datastructures - it is on my list of things to do!
 
 lets see what happens
 ```clojure
@@ -57,34 +57,9 @@ lets see what happens
 
 By default calls that return a `Entity` of some kind are wrapped with `adapter/from-entity`.
 `Entity` results are only data - ie they are not handles.
-The default for this is to call `bean` and then examines the values under the keys - this approach has been trail and error, but the
-default aim to give the user readable and usable results - in general if the entity contains results, these results are *not*
+The default for this is to call `bean` and then examines the values under the keys.
+In general if the entity contains results, these results are *not*
 desearialzed. all sub classes are - (some are converted to string to give sensible data)
-
-As far as I can tell there is no Abstract Entity class to dispatch on... which is a bit awkward
-
-```clojure
-(defmethod from-entity :default [obj]
-  (cond (is-entity? obj)
-        (try (.getDeclaringClass obj)
-             ;; some entites only make sense as string
-             ;; very much a heuristic here
-             (str obj)
-             (catch java.lang.IllegalArgumentException _
-               (persistent!
-                (reduce (fn [m [k v]]
-                          (assoc! m k (from-entity v)))
-                        (transient {}) (bean obj)))))
-        ;; an array 'inside' an entity
-        ;; we only map if we know the first item is an entity
-        ;; this is because a MultiDocumententity may contain
-        ;; return values or Entities depending on the call.
-        (= java.util.ArrayList (-> obj class))
-        (cond (empty? obj) []
-              (is-entity? (.get obj 0)) (vec (map from-entity obj))
-              :else (vec obj))
-        :else obj))
-```
 
 Lets add a document
 ```clojure
@@ -108,5 +83,26 @@ user> (c/get-document c "360443" BaseDocument)
 {:class com.arangodb.entity.BaseDocument, :id "helloColl/360443", :key "360443", :properties {"data" {"a" {"b" [1 2 3], "c" true}}, "name" "nested"}, :revision "_XKHy-X---_"}
 ```
 If you want to use a json serializer/deserializer then just extend the multimethods `serialize-doc` and `deserialize-doc` for the class `String`
+
+## AQL
+
+The AQL query syntax can be represented as clojure data structures, there is no EBFN document at the moment so you will have to read the source file, an example taken from one of the tests:
+In this example the FOR statement is used to execute a graph query
+```clojure
+(deftest brans-parents-test
+  (h/with-db [db td/game-of-thrones-db-label]
+    (let [parents #{"Ned" "Catelyn"}
+          query [:FOR ["c" "Characters"]
+                 [:FILTER [:EQ "c.name" "\"Bran\""]]
+                 [:FOR ["v" {:start "c"
+                             :type :outbound
+                             :depth [1 1]
+                             :collections ["ChildOf"]}]
+                  [:RETURN "v.name"]]]]
+      (is (= (set (d/query db query String))
+             (set (map adapter/deserialize-doc (d/query db query)))
+             parents)))))
+```
+
 
 Have a play - and remeber the multimethods! - if you don't like the data you are getting, change it...
