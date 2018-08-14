@@ -77,7 +77,7 @@
 (defn ^VertexEntity insert-vertex
   ([^ArangoVertexCollection coll doc]
    (ad/from-entity (.insertVertex coll (ad/serialize-doc doc))))
-  ([^ArangoEdgeCollection coll doc ^VertexCreateOptions options]
+  ([^ArangoVertexCollection coll doc ^VertexCreateOptions options]
    (ad/from-entity (.insertVertex coll (ad/serialize-doc doc)
                                   (options/build VertexCreateOptions options)))))
 
@@ -86,7 +86,7 @@
    (get-vertex coll key ad/*default-doc-class*))
   ([^ArangoVertexCollection coll ^String key ^Class as]
    (ad/deserialize-doc (.getVertex coll key as)))
-  ([^ArangoEdgeCollection coll ^String key ^Class as ^DocumentReadOptions options]
+  ([^ArangoVertexCollection coll ^String key ^Class as ^DocumentReadOptions options]
    (ad/deserialize-doc (.getVertex coll key as (options/build DocumentReadOptions options)))))
 
 (defn ^VertexUpdateEntity replace-vertex
@@ -103,15 +103,13 @@
    (ad/from-entity (.updateVertex coll key (ad/serialize-doc doc)
                                   (options/build VertexUpdateOptions options)))))
 
-(defn delete-vertex
-  ;; void
-  ([^ArangoVertexCollection coll ^String key ^Object doc]
-   (.deleteVertex coll key (ad/serialize-doc doc)))
-  ([^ArangoVertexCollection coll ^String key ^Object doc ^VertexDeleteOptions options]
-   (.deleteVertex coll key (ad/serialize-doc doc)
-                  (options/build VertexDeleteOptions options))))
+(defn delete-vertex ; void
+  ([^ArangoVertexCollection coll ^String key]
+   (.deleteVertex coll key))
+  ([^ArangoVertexCollection coll ^String key ^VertexDeleteOptions options]
+   (.deleteVertex coll key (options/build VertexDeleteOptions options))))
 
-(defn ^EdgeEntity insert-edge
+(defn insert-edge ^EdgeEntity
   ([^ArangoEdgeCollection coll doc]
    (ad/from-entity (.insertEdge coll (ad/serialize-doc doc))))
   ([^ArangoEdgeCollection coll doc ^EdgeCreateOptions options]
@@ -127,24 +125,22 @@
    (ad/deserialize-doc (.getEdge coll key as (options/build DocumentReadOptions options)))))
 
 
-(defn ^EdgeUpdateEntity replace-edge
+(defn replace-edge ^EdgeUpdateEntity
   ([^ArangoEdgeCollection coll ^String key ^Object doc]
    (ad/from-entity (.replaceEdge coll key (ad/serialize-doc doc))))
   ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeUpdateOptions options]
    (ad/from-entity (.replaceEdge coll key (ad/serialize-doc doc)
                                  (options/build EdgeUpdateOptions options)))))
 
-(defn ^EdgeUpdateEntity update-edge
+(defn update-edge ^EdgeUpdateEntity
   ([^ArangoEdgeCollection coll ^String key ^Object doc]
    (ad/from-entity (.updateEdge coll key (ad/serialize-doc doc))))
   ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeUpdateOptions options]
    (ad/from-entity (.updateEdge coll key (ad/serialize-doc doc)
                                 (options/build EdgeUpdateOptions options)))))
 
-(defn delete-edge
-  ;; void
-  ([^ArangoEdgeCollection coll ^String key ^Object doc]
-   (.deleteEdge coll key (ad/serialize-doc doc)))
-  ([^ArangoEdgeCollection coll ^String key ^Object doc ^EdgeDeleteOptions options]
-   (.deleteEdge coll key (ad/serialize-doc doc)
-                (options/build EdgeDeleteOptions options))))
+(defn delete-edge ; void
+  ([^ArangoEdgeCollection coll ^String key]
+   (.deleteEdge coll key))
+  ([^ArangoEdgeCollection coll ^String key ^EdgeDeleteOptions options]
+   (.deleteEdge coll key (options/build EdgeDeleteOptions options))))

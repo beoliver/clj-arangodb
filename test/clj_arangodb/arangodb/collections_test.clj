@@ -1,12 +1,20 @@
 (ns clj-arangodb.arangodb.collections-test
   (:require [clojure.set :as set]
             [clj-arangodb.arangodb.databases :as d]
+            [clj-arangodb.arangodb.collections :as c]
             [clj-arangodb.arangodb.aql :as aql]
             [clj-arangodb.arangodb.adapter :as adapter]
             [clj-arangodb.arangodb.cursor :as cursor]
             [clj-arangodb.arangodb.helper :as h]
             [clj-arangodb.arangodb.test-data :as td]
             [clojure.test :refer :all]))
+
+(deftest insert-documents-test
+  (h/with-temp-db [db "someDB"]
+    (let [coll (d/create-and-get-collection db "someCollection")
+          res (c/insert-documents coll [{:name "a" :age 1} {:name "b" :age 2}])]
+      (is (= (:class res)
+             com.arangodb.entity.MultiDocumentEntity)))))
 
 (deftest collection-size-test
   (h/with-db [db td/game-of-thrones-db-label]
@@ -24,7 +32,7 @@
                              :depth [1 1]
                              :collections ["ChildOf"]}]
                   [:RETURN "v.name"]]]]
-      (is (= (set (map adapter/deserialize-doc (d/query db query)))
+      (is (= (set (d/query db query String))
              children)))))
 
 (deftest group-test-1
@@ -57,13 +65,13 @@
     (let [parents #{"Ned" "Catelyn"}
           query [:FOR ["c" "Characters"]
                  [:FILTER [:EQ "c.name" "\"Bran\""]]
-                 [:LIMIT 1] ;; does not change anything
                  [:FOR ["v" {:start "c"
                              :type :outbound
                              :depth [1 1]
                              :collections ["ChildOf"]}]
                   [:RETURN "v.name"]]]]
-      (is (= (set (map adapter/deserialize-doc (d/query db query)))
+      (is (= (set (d/query db query String))
+             (set (map adapter/deserialize-doc (d/query db query)))
              parents)))))
 
 (deftest tywins-grandchildren-test
@@ -76,7 +84,7 @@
                              :depth [2 2]
                              :collections ["ChildOf"]}]
                   [:RETURN-DISTINCT "v.name"]]]]
-      (is (= (set (map adapter/deserialize-doc (d/query db query)))
+      (is (= (set (d/query db query String))
              grandchildren)))))
 
 (deftest joffrey-parents-and-grandparents-test
@@ -90,5 +98,5 @@
                              :depth [1 2]
                              :collections ["ChildOf"]}]
                   [:RETURN-DISTINCT "v.name"]]]]
-      (is (= (set (map adapter/deserialize-doc (d/query db query)))
+      (is (= (set (d/query db query String))
              (set/union parents grandparents))))))

@@ -37,19 +37,19 @@
 (defn foreach [^ArangoCursor cursor consume-fn]
   (.forEach cursor (as-consumer consume-fn)))
 
-(defn map ^Iterable [cursor f]
+(defn map ^Iterable [^ArangoCursor cursor f]
   (.map cursor (as-fn f)))
 
-(defn filter [cursor pred]
+(defn filter [^ArangoCursor cursor pred]
   (.filter cursor (as-pred pred)))
 
-(defn any-match [cursor pred]
+(defn any-match [^ArangoCursor cursor pred]
   (.anyMatch cursor (as-pred pred)))
 
-(defn all-match [cursor pred]
+(defn all-match [^ArangoCursor cursor pred]
   (.allMatch cursor (as-pred pred)))
 
-(defn none-match [cursor pred]
+(defn none-match [^ArangoCursor cursor pred]
   (.noneMatch cursor (as-pred pred)))
 
 (defn collect-into [^ArangoCursor cursor target]
