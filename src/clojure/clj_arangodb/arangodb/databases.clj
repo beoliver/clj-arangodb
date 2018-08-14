@@ -22,11 +22,14 @@
             AqlQueryOptions])
   (:refer-clojure :exclude [drop]))
 
-(defn ^Boolean exists? [^ArangoDatabase db] (.exists db))
+(defn exists? ^Boolean
+  [^ArangoDatabase db] (.exists db))
 
-(defn ^Boolean drop [^ArangoDatabase db] (.drop db))
+(defn drop ^Boolean
+  [^ArangoDatabase db] (.drop db))
 
-(defn ^DatabaseEntity get-info [^ArangoDatabase db] (ad/from-entity (.getInfo db)))
+(defn get-info ^DatabaseEntity
+  [^ArangoDatabase db] (ad/from-entity (.getInfo db)))
 
 (defn get-document
   "
@@ -50,13 +53,13 @@
    (ad/from-entity (.createCollection db coll-name
                                       (options/build CollectionCreateOptions options)))))
 
-(defn ^ArangoCollection collection
+(defn collection ^ArangoCollection
   ([^ArangoDatabase db ^String coll-name]
    (.collection db coll-name)))
 
 (def get-collection collection)
 
-(defn ^ArangoCollection create-and-get-collection
+(defn create-and-get-collection ^ArangoCollection
   ([^ArangoDatabase db ^String coll-name]
    (do (.createCollection db coll-name)
        (.collection db coll-name)))
@@ -74,7 +77,7 @@
 
 (defn get-collection-names
   ([^ArangoDatabase db]
-   (vec (map #(.getName %) (.getCollections db)))))
+   (vec (map #(.getName ^CollectionEntity %) (.getCollections db)))))
 
 (defn get-graphs
   ;; returns a collection of GraphEntity
@@ -82,23 +85,24 @@
   (vec (map ad/from-entity (.getGraphs db))))
 
 (defn collection-exists? [^ArangoDatabase db collection-name]
-  (some #(= collection-name (.getName %)) (.getCollections db)))
+  (some #(= collection-name (.getName ^CollectionEntity %)) (.getCollections db)))
 
 (defn graph-exists? [^ArangoDatabase db graph-name]
-  (some #(= graph-name (.getName %)) (.getGraphs db)))
+  (some #(= graph-name (.getName ^GraphEntity %)) (.getGraphs db)))
 
-(defn ^GraphEntity create-graph
+(defn create-graph
   "Create a new graph `graph-name`. edge-definitions must be a non empty
   sequence of maps `{:name 'relationName' :from ['collA'...] :to [collB...]}`
   if the names in sources and targets do not exist on the database,
   then new collections will be created."
+  ^GraphEntity
   [^ArangoDatabase db ^String name edge-definitions ^GraphCreateOptions options]
   (ad/from-entity (.createGraph db name
                                 (map #(if (map? %) (graph/edge-definition %) %)
                                      edge-definitions)
                                 (options/build GraphCreateOptions options))))
 
-(defn ^ArangoGraph graph
+(defn graph ^ArangoGraph
   ([^ArangoDatabase db ^String graph-name]
    (.graph db graph-name)))
 

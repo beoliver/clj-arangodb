@@ -20,7 +20,7 @@
   :max-connections Integer | Long
   "
   ([] (connect {}))
-  ([options] (.build (options/build ArangoDB$Builder options))))
+  ([options] (.build ^ArangoDB$Builder (options/build ArangoDB$Builder options))))
 
 (defn shutdown [^ArangoDB conn] (.shutdown conn))
 
