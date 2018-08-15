@@ -1,4 +1,4 @@
-(defproject beoliver/clj-arangodb "0.0.7"
+(defproject beoliver/clj-arangodb "0.0.8"
   :description "A Clojure wrapper for ArangoDB"
   :url "https://github.com/beoliver/clj-arangodb"
   :license {:name "Eclipse Public License"
