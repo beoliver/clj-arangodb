@@ -14,6 +14,7 @@
                    {:a "a" :b "b"}
                    {:a 1 :b 2}
                    {:a "a" :b 2}
+                   {1 "one" 2 "two" 3.0 "three"}
                    {:a "a" :b 2 :d {:e 3 :f "g"}}]]
       (is (= (v/pack datum) (v/pack datum)))
       (is (= datum (id datum))))))
