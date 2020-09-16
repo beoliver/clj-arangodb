@@ -1,7 +1,4 @@
 (ns clj-arangodb.arangodb.oasis
-  (:require
-   [clj-arangodb.arangodb.core :as ar]
-   [clj-arangodb.arangodb.databases :as d])
   (:import
    [java.io ByteArrayInputStream]
    [javax.net.ssl SSLContext TrustManagerFactory]
