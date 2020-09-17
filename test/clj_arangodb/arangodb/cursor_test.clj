@@ -16,7 +16,7 @@
       (is (= (set (keys stats))
              #{:class :executionTime :filtered :fullCount
                :scannedFull :scannedIndex :writesExecuted
-               :writesIgnored})))))
+               :writesIgnored :peakMemoryUsage})))))
 
 (deftest cursor-count-test
   (h/with-temp-db [db "testDB"]

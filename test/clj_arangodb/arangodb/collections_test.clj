@@ -7,7 +7,16 @@
             [clj-arangodb.arangodb.cursor :as cursor]
             [clj-arangodb.arangodb.helper :as h]
             [clj-arangodb.arangodb.test-data :as td]
-            [clojure.test :refer :all]))
+            [clj-arangodb.velocypack.core :as v]
+            [clojure.test :refer :all]
+            [cheshire.core :as json]))
+
+(defn game-of-thrones-test-fixture [tests]
+  (td/init-game-of-thrones-db)
+  (tests)
+  (td/drop-game-of-thrones-db))
+
+(use-fixtures :once game-of-thrones-test-fixture)
 
 (deftest insert-documents-test
   (h/with-temp-db [db "someDB"]
@@ -35,6 +44,8 @@
       (is (= (set (d/query db query String))
              children)))))
 
+(def x (json/parse-string (json/generate-string ["a" ["b" "c"]])))
+
 (deftest group-test-1
   (h/with-db [db td/game-of-thrones-db-label]
     (is (= (->> [:FOR ["c" "Characters"]
@@ -55,7 +66,7 @@
                        [:FILTER [:NE "surname" nil]]
                        [:RETURN ["surname" "members"]]]
                       (d/query db)
-                      (map adapter/deserialize-doc)
+                      (map v/unpack-strict)
                       (into {}))]
       (is (= (count (get result "Lannister")) 4))
       (is (= (count (get result "Stark")) 6)))))

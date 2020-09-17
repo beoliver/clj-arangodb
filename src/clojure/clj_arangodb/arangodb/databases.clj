@@ -87,6 +87,9 @@
 (defn collection-exists? [^ArangoDatabase db collection-name]
   (some #(= collection-name (.getName ^CollectionEntity %)) (.getCollections db)))
 
+(defn collection? [^ArangoDatabase db collection-name]
+  (boolean (collection-exists? db collection-name)))
+
 (defn graph-exists? [^ArangoDatabase db graph-name]
   (some #(= graph-name (.getName ^GraphEntity %)) (.getGraphs db)))
 
