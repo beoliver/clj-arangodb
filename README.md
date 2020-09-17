@@ -163,6 +163,23 @@ user> (h/with-db [db td/game-of-thrones-db-label]
                       [:RETURN "v.name"]]]]
           (println (vec (d/query db query String)))))
 [Ned Catelyn]
+
+
+## Oasis
+
+Connect to [Oasis](https://cloud.arangodb.com/home)
+
+```clojure
+(ns user
+ (:require 
+   [clj-arangodb.arangodb.core :as ar]
+   [clj-arangodb.arangodb.oasis :as oasis]
+
+(def conn (ar/connect {:user <arango-user>
+                       :password <arango-password>
+                       :host [<arango-host> <arango-port>]
+                       :useSsl true
+                       :sslContext (oasis/initialize-ssl-context <certificate>}))
 ```
 
 Have a play - and remeber the multimethods! - if you don't like the data you are getting, change it...
