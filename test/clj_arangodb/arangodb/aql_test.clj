@@ -27,7 +27,17 @@
          (aql/serialize [:sum [[:sum [1 2 3]] [:sum [2 3 4]]]])))
   (h/with-temp-db [db "testDB"]
     (let [query [:return [:sum [[:sum [1 2 3]] [:sum [2 3 4]]]]]]
-      (is (= 15 (cursor/first (d/query db query Integer)))))))
+      (testing "default deserialization returns a float"
+        (let [res (-> db
+                      (d/query query)
+                      cursor/first
+                      adapter/deserialize-doc)]
+          (is (= 15.0 res))))
+      (testing "passing an Integer class returns an integer"
+        (let [res (-> db
+                      (d/query query Integer)
+                      cursor/first)]
+          (is (= 15 res)))))))
 
 (deftest obj-test
   (h/with-temp-db [db "testDB"]
@@ -37,12 +47,10 @@
           query-2 [:LET ["a" [:SUM [1 2 3]]
                          "b" "a"]
                    [:RETURN {:a [:SUM [1 2 3]] :b "b"}]]]
-      (is (= (->> query-1
-                  (d/query db)
-                  cursor/first
-                  adapter/deserialize-doc)
-             (->> query-2
-                  (d/query db)
-                  cursor/first
-                  adapter/deserialize-doc)
+      (is (= (-> (d/query db query-1)
+                 cursor/first
+                 adapter/deserialize-doc)
+             (-> (d/query db query-2)
+                 cursor/first
+                 adapter/deserialize-doc)
              {:a 6.0 :b 6.0})))))

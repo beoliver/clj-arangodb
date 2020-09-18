@@ -31,7 +31,7 @@
 
 (defn ^ArangoDatabase db
   "Always returns a new `ArrangoDatabase` even if no such database exists
-  the returned object can be used if a databse is created at a later time"
+  the returned object can be used if a database is created at a later time"
   [^ArangoDB conn ^String db-name]
   (.db conn db-name))
 
