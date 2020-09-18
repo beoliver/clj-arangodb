@@ -1,6 +1,7 @@
 # clj-arangodb
 
 [![Clojars Project](https://img.shields.io/clojars/v/beoliver/clj-arangodb.svg)](https://clojars.org/beoliver/clj-arangodb)
+[![CircleCI](https://circleci.com/gh/beoliver/clj-arangodb.svg?style=shield)](https://circleci.com/gh/beoliver/clj-arangodb)
 
 ### A Clojure interface for the `arangodb-java-driver`
 
