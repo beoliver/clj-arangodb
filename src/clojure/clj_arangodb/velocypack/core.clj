@@ -1,11 +1,31 @@
 (ns clj-arangodb.velocypack.core
-  (:require [clj-arangodb.velocypack.utils :as utils])
+  (:require [clj-arangodb.velocypack.utils :as utils]
+            [cheshire.core :as json])
   (:import [com.arangodb.velocypack
             ObjectIterator
             ArrayIterator
             VPackSlice
             ValueType
-            VPackBuilder]))
+            VPackBuilder
+            VPackParser$Builder]))
+
+(defn unpack
+  ([^VPackSlice slice key-fn]
+   (let [builder (new VPackParser$Builder)
+         data (.toJson (.build builder) slice)]
+     (json/parse-string data key-fn)))
+  ([^VPackSlice slice]
+   (unpack slice utils/str->key)))
+
+
+(defn unpack-strict
+  ([^VPackSlice slice key-fn]
+   (let [builder (new VPackParser$Builder)
+         data (.toJson (.build builder) slice)]
+     (json/parse-string-strict data key-fn)))
+  ([^VPackSlice slice]
+   (unpack-strict slice utils/str->key)))
+
 
 (defprotocol VPackable
   (pack [this])
@@ -160,41 +180,3 @@
                                        (. k (toString))) b))
                     (.add builder ^String k ^ValueType ValueType/OBJECT)
                     this))))
-
-(defn unpack
-  "Deserialize a VPackSlice.
-  Takes an optional `key-fn`.
-  By default integer and float keys are converted
-  all others are returned as keywords"
-  ([^VPackSlice slice] (unpack slice utils/str->key))
-  ([^VPackSlice slice key-fn]
-   (case (.toString ^ValueType (.getType slice))
-     "OBJECT"
-     (let [len (long (.getLength slice))]
-       (loop [acc (transient {})
-              i (long 0)]
-         (if (== i len)
-           (persistent! acc)
-           (recur
-            (assoc! acc
-                    (key-fn (.getAsString (.keyAt slice i)))
-                    (unpack (.valueAt slice i) key-fn))
-            (inc i)))))
-     "ARRAY"
-     (loop [^ArrayIterator iter (.arrayIterator slice)
-            xs (transient [])]
-       (if (.hasNext iter)
-         (recur iter (conj! xs (unpack (.next iter) key-fn)))
-         (persistent! xs)))
-     "NULL" nil
-     "STRING" (.getAsString slice)
-     "BOOL" (.getAsBoolean slice)
-     "DOUBLE" (.getAsDouble slice)
-     "UTC_DATE" (.getAsDate slice)
-     "INT" (.getAsLong slice)
-     "UINT" (.getAsInt slice)
-     "SMALLINT" (.getAsInt slice)
-     "BINARY" (.getAsBinary slice)
-     "NONE" nil
-     "ILLEGAL" nil
-     slice)))

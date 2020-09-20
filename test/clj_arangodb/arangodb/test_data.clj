@@ -109,8 +109,11 @@
     [db label]
     (d/drop db)))
 
+(defn drop-game-of-thrones-db []
+  (drop-db game-of-thrones-db-label))
+
 (defn init-game-of-thrones-db []
-  (drop-db game-of-thrones-db-label)
+  (drop-game-of-thrones-db)
   (h/with-db
     [db game-of-thrones-db-label]
     (d/create-collection db "Characters")
